@@ -5,6 +5,7 @@ import org.ipn.cic.ndsrg.BloomFilter;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
+import java.io.InvalidObjectException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -57,6 +58,7 @@ public class BFGRouter extends ActiveRouter{
      * Keeps track of the time when degradation was made, this provides a rudimentary Timer
      */
     private double lastDegradation;
+    private double lastBFExchange;
 
     public static final String BFG_NS = "BFGRouter";
     public static final String SETTINGS_DEG_INTERVAL = "degradationInterval";
@@ -66,6 +68,8 @@ public class BFGRouter extends ActiveRouter{
     public static final String SETTINGS_BF_COUNTERS = "BFCounters";
     public static final String SETTINGS_BF_HASH_FUNCTIONS = "BFHashFunctions";
     public static final String SETTINGS_BF_MAX_COUNT = "BFMaxCount";
+
+    protected double creationTime;
 
     /**
      * Constructor from settings in configuration files. Invoked by ONE
@@ -83,7 +87,11 @@ public class BFGRouter extends ActiveRouter{
         bfHashFunctions = bfgSettings.getInt(SETTINGS_BF_HASH_FUNCTIONS, 6);
         bfMaxCount = bfgSettings.getInt(SETTINGS_BF_MAX_COUNT, 32);
 
+        this.F_STAR = new BloomFilter<Integer>(bfCounters, bfHashFunctions, bfMaxCount);
+        this.Ft = new BloomFilter<Integer>(bfCounters, bfHashFunctions, bfMaxCount);
+
         lastDegradation = 0.0;
+        creationTime = SimClock.getTime();
     }
 
     /**
@@ -92,10 +100,8 @@ public class BFGRouter extends ActiveRouter{
      */
     protected BFGRouter(BFGRouter r){
         super(r);
-        if(this.F_STAR != null)
-            this.F_STAR = new BloomFilter<Integer>(r.F_STAR);
-        if(this.Ft != null)
-            this.Ft = new BloomFilter<Integer>(r.Ft);
+        this.F_STAR = new BloomFilter<Integer>(r.F_STAR);
+        this.Ft = new BloomFilter<Integer>(r.Ft);
         this.degradationInterval = r.degradationInterval;
         this.degradationProbability = r.degradationProbability;
         this.forwardThreshold = r.forwardThreshold;
@@ -104,15 +110,23 @@ public class BFGRouter extends ActiveRouter{
         this.bfCounters = r.bfCounters;
         this.bfMaxCount = r.bfMaxCount;
         this.bfHashFunctions = r.bfHashFunctions;
+        creationTime = SimClock.getTime();
     }
 
 
+    /**
+     * Initializes this router object with the host information. If you need the node's identity for any initialization,
+     * that should be made here
+      * @param host
+     * @param mListeners
+     */
     @Override
     public void init(DTNHost host, List<MessageListener> mListeners){
         super.init(host, mListeners);
         initializeBloomFilters();
-        log("BloomFilter intialization done at "+ getHost().getAddress());
-        log(this.F_STAR.toString());
+
+        if (this.Ft == null) throw new AssertionError();
+        if (this.F_STAR == null) throw new AssertionError();
     }
 
     /**
@@ -128,8 +142,6 @@ public class BFGRouter extends ActiveRouter{
      * Adds the necessary data to the filters
      */
     public void initializeBloomFilters(){
-        this.Ft = new BloomFilter<Integer>(bfCounters, bfHashFunctions, bfMaxCount);
-        this.F_STAR = new BloomFilter<Integer>(bfCounters, bfHashFunctions, bfMaxCount);
         Integer thisHost = new Integer(getHost().getAddress());
         this.Ft.add(thisHost);//Add the identity of the node this router is in
         this.F_STAR.add(thisHost);
@@ -152,7 +164,6 @@ public class BFGRouter extends ActiveRouter{
         if (exchangeDeliverableMessages() != null) {
             return; //If a connection started a transfer end this update
         }
-
         forwardMessages();
     }
 
@@ -165,7 +176,18 @@ public class BFGRouter extends ActiveRouter{
         RoutingInfo top = super.getRoutingInfo(); //Get the information of ActiveRouter and MessageRouter
         RoutingInfo localBF = new RoutingInfo("BloomFilter: " + this.Ft.toString());
 
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for(Integer i : F_STAR.hashesFor(getHost().getAddress())){
+            sb.append(i);
+            sb.append(",");
+        }
+        sb.deleteCharAt(sb.length() -1);
+        sb.append("]");
+        RoutingInfo myID = new RoutingInfo("myBFid: " + sb.toString());
+
         top.addMoreInfo(localBF);
+        top.addMoreInfo(myID);
         return top;
     }
 
@@ -176,11 +198,10 @@ public class BFGRouter extends ActiveRouter{
     @Override
     public void changedConnection(Connection con){
         if(con.isUp()){
-            DTNHost neighbor = con.getOtherNode(getHost());
-            BloomFilter<DTNHost> Fit = new BloomFilter<DTNHost>(((BFGRouter)neighbor.getRouter()).Ft);
-            Fit.stochasticDegrade(degradationProbability);
+            exchangeBloomFilters(con);
         }
     }
+
 
     /**
      * Whenever this function is called, checks the current time and compares if at least {degradationInterval} seconds
@@ -191,9 +212,53 @@ public class BFGRouter extends ActiveRouter{
         if(now - lastDegradation >= degradationInterval){
             /**Degrade the filter**/
             this.Ft.stochasticDegrade(degradationProbability);
+            try {
+                this.Ft.join(F_STAR);
+            } catch (InvalidObjectException e) {
+                log(e.getMessage());
+            }
             lastDegradation = now;
         }
     }
+
+    /**
+     * Exchanges periodically the Bloom filters in all available connections. Implemented for static nodes that keep
+     * an always-active connection
+     */
+    private void helloTimer(){
+        double now = SimClock.getTime();
+        if(now - lastBFExchange >= (degradationInterval + 2.0)){ //Separate the Bloom filter exchange at least one second
+            for(Connection con : getConnections()){
+                if(con.isUp()){
+                    exchangeBloomFilters(con);
+                }
+            }
+        }
+
+    }
+
+
+    /**
+     * Exchange routing information between two nodes in a Connection object
+     * @param con
+     */
+    private void exchangeBloomFilters(Connection con){
+        DTNHost neighbor = con.getOtherNode(getHost());
+        if(! (neighbor.getRouter() instanceof  BFGRouter)){
+            log("Error: This protocol can not communicate with other type of Router");
+            return;
+        }
+        BFGRouter other = (BFGRouter) neighbor.getRouter();
+        BloomFilter<Integer> Fit = new BloomFilter<Integer>(other.Ft);
+        Fit.stochasticDegrade(degradationProbability);
+
+        try {
+            this.Ft.join(Fit);
+        } catch (InvalidObjectException e) {
+            log(e.getMessage());
+        }
+    }
+
 
     /**
      * Tries to send all the messages to a node that it's a good candidate to forward, ordered by the delivery
@@ -219,22 +284,27 @@ public class BFGRouter extends ActiveRouter{
 
                 switch(forwardStrategy){
                     case 1:
-                        if(Prj >= Pri)
+                        if(Prj >= Pri || Prj == 1.0)
                             messages.add(new Tuple<>(m, con));
                         break;
                     case 2:
-                        if(Prj >= Pri + 0.1)
+                        if(Prj >= Pri + forwardThreshold || Prj == 1.0)
                             messages.add(new Tuple<>(m, con));
                         break;
                     case 3:
-                        if(Prj >= 1.1 * Pri)
+                        if(Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0)
                             messages.add(new Tuple<>(m, con));
                         break;
                     case 4:
-                        if(Prj >= Pri)
+                        if(Pri <= forwardThreshold || Prj >= Pri + forwardThreshold || Prj == 1.0)
                             messages.add(new Tuple<>(m, con));
                         break;
+                    case 5:
+                        //Behaviour based on three levels of proximity to the destination
+                        break;
                     default:
+                        log("Illegal forwarding strategy");
+                        System.exit(1);
                         break;
                 }
             }
@@ -252,7 +322,12 @@ public class BFGRouter extends ActiveRouter{
     private double probabilityThrough(DTNHost destination, BloomFilter<Integer> intermediate){
         double Pr = 0.0;
         for(Integer i : intermediate.hashesFor(destination.getAddress())){
-            Pr += intermediate.counterAt(i);
+            try {
+                Pr += intermediate.counterAt(i);
+            }catch (IndexOutOfBoundsException e){
+                log("Error accessing counter " + i + " in filter");
+                log("Caused in node " + getHost().toString() + " while calculating for " + destination);
+            }
         }
         return Pr / (bfHashFunctions*bfMaxCount*1.0);
     }
@@ -275,5 +350,17 @@ public class BFGRouter extends ActiveRouter{
         String formatString = "%f {%s} %s:%d %s";
         String message = String.format(formatString, SimClock.getTime(), function, file, line, msg);
         System.out.println(message);
+    }
+
+    public String serializeInfo(){
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append("\"m\":" + this.bfCounters + ",");
+        sb.append("\"k\":" + this.bfHashFunctions + ",");
+        sb.append("\"c\":" + this.bfMaxCount + ",");
+        sb.append("\"myID\":" + this.F_STAR.hashesFor(getHost().getAddress()) + ",");
+        sb.append("\"Ft\":" + this.Ft.toReducedString());
+        sb.append("}");
+        return sb.toString();
     }
 }

@@ -1,0 +1,90 @@
+Scenario.name = pathTest
+Scenario.simulateConnections = true
+Scenario.updateInterval = 0.1
+Scenario.endTime = 5000
+
+# Create an interface called WiFiIface, with 11Mbps (802.11b)
+WiFiIface.type = SimpleBroadcastInterface
+WiFiIface.transmitSpeed = 1375k
+WiFiIface.transmitRange = 100
+
+#Each group holds one node due to StationaryMovement
+Scenario.nrofHostGroups = 5
+Group.bufferSize = 50M
+Group.routeType = 1
+Group.router = BFGRouter
+Group.waitTime = 0, 0
+Group.speed = 2, 4
+Group.nrofInterfaces = 1
+Group.interface1 = WiFiIface
+
+Group1.groupID = Src_
+Group1.nrofHosts = 1
+Group1.movementModel = StationaryMovement
+Group1.nodeLocation = 100, 250
+
+Group2.groupID = INT1_
+Group2.nrofHosts = 1
+Group2.movementModel = StationaryMovement
+Group2.nodeLocation = 200, 250
+
+Group3.groupID = INT2_
+Group3.nrofHosts = 1
+Group3.movementModel = StationaryMovement
+Group3.nodeLocation = 250, 190
+
+Group4.groupID = INT3_
+Group4.nrofHosts = 1
+Group4.movementModel = StationaryMovement
+Group4.nodeLocation = 250, 310 
+Group4.nrofInterfaces = 1
+Group4.interface1 = WiFiIface
+
+Group5.groupID = DST_
+Group5.nrofHosts = 1
+Group5.movementModel = StationaryMovement
+Group5.nodeLocation = 320, 250
+
+
+#Describe how many types of events are in this simulation
+Events.nrof = 1
+
+Events1.class = MessageEventGenerator
+Events1.interval = 1, 5
+Events1.size = 75k, 75k
+Events1.hosts = 0, 4
+Events1.prefix = A
+
+MovementModel.rngSeed = 1
+MovementModel.worldSize = 1000, 1000
+MovementModel.warmup = 10
+
+BFGRouter.degradationInterval = 1.5
+BFGRouter.degradationProbability = 0.7
+BFGRouter.forwardThreshold = 0.7
+BFGRouter.forwardStrategy = 1
+BFGRouter.BFCounters = 8
+BFGRouter.BFHashFunctions = 3
+BFGRouter.BFMaxCount = 16
+
+Report.nrofReports = 11
+Report.warmup = 0
+Report.granularity = 1
+Report.reportDir = test/
+Report.report1 = MessageStatsReport
+Report.report2 = DeliveredMessagesReport
+Report.report3 = ContactsPerHourReport
+Report.report4 = CreatedMessagesReport
+Report.report5 = DistanceDelayReport
+Report.report6 = MessageLocationReport
+Report.report7 = MessageGraphvizReport
+Report.report8 = MessageDeliveryReport
+Report.report9 = MessageDelayReport
+Report.report10 = MessageReport
+Report.report11 = EventLogReport
+
+Optimization.cellSizeMult = 5
+Optimization.randomizeUpdateOrder = true
+
+GUI.EventLogPanel.nrofEvents = 100
+
