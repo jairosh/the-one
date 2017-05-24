@@ -1,6 +1,6 @@
 
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -55,7 +55,7 @@ Events1.prefix = M
 
 ##Routing parameters
 BFGRouter.degradationInterval = 300
-BFGRouter.degradationProbability = 0.6
+BFGRouter.degradationProbability = 0.75
 BFGRouter.forwardThreshold = 0.1
 BFGRouter.forwardStrategy = 3
 BFGRouter.BFCounters = 512
@@ -65,8 +65,7 @@ BFGRouter.BFMaxCount = 32
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-#78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598;   66755;   28419; 42505;   57206;   77544;   95187;   88804; 12002;   78051;   71182;   15475;   45907; 5768;
-MovementModel.rngSeed = [ 92367;   8762;    5591;    44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139;   69431;   3753;    78463; 62324;   23645;   76388;   7396;    48344; 4029]
+MovementModel.rngSeed = [ 5481;    11778; 96617;   52770;   55182;   5327;    11131; 61959;   12436;    7591;   90972;   70094; 36446;   92367;   8762;    5591]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
