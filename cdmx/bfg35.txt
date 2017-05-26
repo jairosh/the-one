@@ -57,7 +57,7 @@ Events1.prefix = M
 BFGRouter.degradationInterval = 300
 BFGRouter.degradationProbability = 0.75
 BFGRouter.forwardThreshold = 0.1
-BFGRouter.forwardStrategy = 4
+BFGRouter.forwardStrategy = 3
 BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
 BFGRouter.BFMaxCount = 32
@@ -65,13 +65,12 @@ BFGRouter.BFMaxCount = 32
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-#  
-MovementModel.rngSeed = [44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139;   69431;   3753;    78463; 62324;   23645;   76388;  7396;  48344]
+MovementModel.rngSeed = [ 4029;    90521;   98820;   3136;    35402; 64524;   37578;   16966;   43488;   91050; 79480;   91584;   14418;   15078;   89848; 21628;   84181;   91016;   48153;   78002]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
 # How long time to move hosts in the world before real simulation
-MovementModel.warmup = 1000
+MovementModel.warmup = 100
 
 ## Map based movement -movemetn model sepcific settings
 MapBasedMovement.nrofMapFiles = 1
@@ -80,11 +79,11 @@ MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 ## Reports - all report names have to be valid report classes
 # how many reports to load
-Report.nrofReports = 4
+Report.nrofReports = 3
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = reportsBFG4_3/
+Report.reportDir = reportsBFG3/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = BufferOccupancyReport
@@ -94,12 +93,12 @@ Report.report4 = NodeDensityReport
 #Report.report2 = ContactTimesReport
 #Report.report3 = BloomFilterSnapshotReport
 
-Report.NodeDensityReport.outputGnuplot = true
+Report.outputGnuplot = true
 
 
 ## Optimization settings -- these affect the speed of the simulation
 ## see World class for details.
-Optimization.cellSizeMult = 5
+Optimization.cellSizeMult = 1
 Optimization.randomizeUpdateOrder = true
 
 
