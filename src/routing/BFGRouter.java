@@ -319,18 +319,14 @@ public class BFGRouter extends ActiveRouter{
                         break;
                     case 5:
                         //Behaviour based on three levels of proximity to the destination
-                        if(Prj < firstThreshold ){ //If there's no probabilistic state, do Epidemic
+                        if(0 <= Pri && Pri < firstThreshold ){ //If there's no probabilistic state, do Epidemic
                             messages.add(new Tuple<>(m, con));
-                        }else if (Prj >= firstThreshold && Prj < secondThreshold){//Hill-climbing transmission
-                            if(Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0){
+                        }else {//Hill-climbing transmission
+                            if (Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0) {
                                 messages.add(new Tuple<>(m, con));
-                            }
-                        }else{//Direct Transmission
-                            if(m.getTo().equals(neighbor)){
-                                messages.add(new Tuple<>(m, con));
+                                deleteMessage(m.getId(), true);
                             }
                         }
-
                         break;
                     default:
                         log("Illegal forwarding strategy");

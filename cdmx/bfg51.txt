@@ -55,10 +55,10 @@ Events1.prefix = M
 
 ##Routing parameters
 BFGRouter.degradationInterval = 300
-BFGRouter.degradationProbability = 0.5
-BFGRouter.forwardThreshold = 0.1
+BFGRouter.degradationProbability = 0.75
+BFGRouter.forwardThreshold = 0.05
 BFGRouter.forwardStrategy = 5
-BFGRouter.firstThreshold = 0.1
+BFGRouter.firstThreshold = 0.3
 BFGRouter.secondThreshold = 0.95
 BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
