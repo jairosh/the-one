@@ -55,10 +55,6 @@ public class BFGRouter extends ActiveRouter{
 
 
     /**
-     * Indicates the probability threshold at which a node switches from a progress-based transmition to direct transmission
-     */
-    private double secondThreshold;
-    /**
      * Bloom filter parameters
      */
     private int bfCounters;      //m
@@ -77,7 +73,6 @@ public class BFGRouter extends ActiveRouter{
     public static final String SETTINGS_FORWARD_THRESHOLD = "forwardingThreshold";
     public static final String SETTINGS_FORWARD_STRATEGY = "forwardStrategy";
     public static final String SETTINGS_THRESHOLD_1 = "firstThreshold";
-    public static final String SETTINGS_THRESHOLD_2 = "secondThreshold";
     public static final String SETTINGS_BF_COUNTERS = "BFCounters";
     public static final String SETTINGS_BF_HASH_FUNCTIONS = "BFHashFunctions";
     public static final String SETTINGS_BF_MAX_COUNT = "BFMaxCount";
@@ -98,7 +93,6 @@ public class BFGRouter extends ActiveRouter{
 
         if(forwardStrategy == 5){
             firstThreshold = bfgSettings.getDouble(SETTINGS_THRESHOLD_1, 0.1);
-            secondThreshold = bfgSettings.getDouble(SETTINGS_THRESHOLD_2, 0.9);
         }
 
         bfCounters = bfgSettings.getInt(SETTINGS_BF_COUNTERS, 64);
@@ -346,16 +340,16 @@ public class BFGRouter extends ActiveRouter{
      * @return The probability
      */
     private double probabilityThrough(DTNHost destination, BloomFilter<Integer> intermediate){
-        double Pr = 0.0;
+        double Pr = 1.0;
         for(Integer i : intermediate.hashesFor(destination.getAddress())){
             try {
-                Pr += intermediate.counterAt(i);
+                Pr *= intermediate.counterAt(i);
             }catch (IndexOutOfBoundsException e){
                 log("Error accessing counter " + i + " in filter");
                 log("Caused in node " + getHost().toString() + " while calculating for " + destination);
             }
         }
-        return Pr / (bfHashFunctions*bfMaxCount*1.0);
+        return Pr /(Math.pow(bfMaxCount, bfHashFunctions));
     }
 
     /**

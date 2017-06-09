@@ -67,8 +67,8 @@ BFGRouter.BFMaxCount = 32
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-# 
-MovementModel.rngSeed = [ 78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598;   66755;   28419; 42505;   57206;   77544;   95187; 88804;  12002]
+#  66755;   28419; 42505;   57206;   77544;   95187; 88804;  12002
+MovementModel.rngSeed = [ 78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598 ]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
