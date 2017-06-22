@@ -17,7 +17,7 @@ public class BloomFilterSnapshotReport extends Report implements UpdateListener 
     /**
      * Name of the configuration parameter to seek for the interval in which this will generate snapshots
      */
-    private static final String INTERvAL = "interval";
+    private static final String INTERVAL = "interval";
 
     /**
      * Name of the configuration parameter holding the node list over which the report will be generated
@@ -33,7 +33,7 @@ public class BloomFilterSnapshotReport extends Report implements UpdateListener 
 
     public BloomFilterSnapshotReport(){
         Settings settings = getSettings();
-        interval = settings.getInt(INTERvAL);
+        interval = settings.getInt(INTERVAL);
         lastUpdate = 0.0;
         if(settings.contains(NODES)){
             this.reportedNodes = new HashSet<Integer>();
@@ -48,12 +48,13 @@ public class BloomFilterSnapshotReport extends Report implements UpdateListener 
 
     @Override
     public void updated(List<DTNHost> hosts) {
-        double simTime = getSimTime();
+        Double simTime = getSimTime();
         if (isWarmup()) {
             return; /* warmup period is on */
         }
 		/* one snapshot once every granularity seconds */
         if (simTime - lastUpdate >= interval) {
+            write("[" + simTime.intValue() + "]");
             for( DTNHost h : hosts ){
                 if (this.reportedNodes != null &&
                         !this.reportedNodes.contains(h.getAddress())) {
@@ -79,7 +80,7 @@ public class BloomFilterSnapshotReport extends Report implements UpdateListener 
         StringBuilder sb = new StringBuilder();
         sb.append("{");
         sb.append("\"time\":" + getSimTime() + ",");
-        sb.append("\"id\":" + host.getAddress() + "," );
+        sb.append("\"id\":\"" + host + "\"," );
         Coord pos = host.getLocation();
         sb.append("\"x\":" + pos.getX() + ", \"y\":" + pos.getY() + ",");
         BFGRouter router = (BFGRouter) host.getRouter();

@@ -5,10 +5,9 @@ import org.ipn.cic.ndsrg.BloomFilter;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
+import javax.swing.text.html.HTMLDocument;
 import java.io.InvalidObjectException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * BFGRouting protocol implementation
@@ -51,7 +50,7 @@ public class BFGRouter extends ActiveRouter{
      * Indicates the first threshold at which a certain node switches from an Epidemic based transmition to a progress-
      * based transmition
      */
-    private double firstThreshold;
+    private double zoneThreshold;
 
 
     /**
@@ -67,12 +66,15 @@ public class BFGRouter extends ActiveRouter{
     private double lastDegradation;
     private double lastBFExchange;
 
+    //List of messages that can be dropped once the transfer finishes
+    private List<String> toBeDropped;
+
     public static final String BFG_NS = "BFGRouter";
     public static final String SETTINGS_DEG_INTERVAL = "degradationInterval";
     public static final String SETTINGS_DEG_PROBABILITY = "degradationProbability";
     public static final String SETTINGS_FORWARD_THRESHOLD = "forwardingThreshold";
     public static final String SETTINGS_FORWARD_STRATEGY = "forwardStrategy";
-    public static final String SETTINGS_THRESHOLD_1 = "firstThreshold";
+    public static final String SETTINGS_ZONE_THRESHOLD = "zoneThreshold";
     public static final String SETTINGS_BF_COUNTERS = "BFCounters";
     public static final String SETTINGS_BF_HASH_FUNCTIONS = "BFHashFunctions";
     public static final String SETTINGS_BF_MAX_COUNT = "BFMaxCount";
@@ -92,7 +94,7 @@ public class BFGRouter extends ActiveRouter{
         forwardStrategy = bfgSettings.getInt(SETTINGS_FORWARD_STRATEGY, 1);
 
         if(forwardStrategy == 5){
-            firstThreshold = bfgSettings.getDouble(SETTINGS_THRESHOLD_1, 0.1);
+            zoneThreshold = bfgSettings.getDouble(SETTINGS_ZONE_THRESHOLD, 0.1);
         }
 
         bfCounters = bfgSettings.getInt(SETTINGS_BF_COUNTERS, 64);
@@ -104,6 +106,7 @@ public class BFGRouter extends ActiveRouter{
 
         lastDegradation = 0.0;
         creationTime = SimClock.getTime();
+        toBeDropped = new ArrayList<>();
     }
 
     /**
@@ -118,11 +121,13 @@ public class BFGRouter extends ActiveRouter{
         this.degradationProbability = r.degradationProbability;
         this.forwardThreshold = r.forwardThreshold;
         this.forwardStrategy = r.forwardStrategy;
+        this.zoneThreshold = r.zoneThreshold;
 
         this.bfCounters = r.bfCounters;
         this.bfMaxCount = r.bfMaxCount;
         this.bfHashFunctions = r.bfHashFunctions;
         creationTime = SimClock.getTime();
+        toBeDropped = new ArrayList<>();
     }
 
 
@@ -280,19 +285,20 @@ public class BFGRouter extends ActiveRouter{
         List<Tuple<Message, Connection>> messages = new ArrayList<Tuple<Message, Connection>>();
         Collection<Message> msgCollection = getMessageCollection();
 
-        //For each active connection
-        for(Connection con : getConnections()){
-            DTNHost neighbor = con.getOtherNode(getHost());
-            BFGRouter neighborRouter  = (BFGRouter) neighbor.getRouter();
+        //For each message
+        for(Message m : msgCollection){
+            //Check all the connections to send it (may be dropped)
+            for(Connection con : getConnections()){
+                DTNHost neighbor = con.getOtherNode(getHost());
+                BFGRouter neighborRouter  = (BFGRouter) neighbor.getRouter();
 
-            if(neighborRouter.isTransferring()) continue; //Skip transferring nodes
-
-            //Check all the messages
-            for(Message m : msgCollection){
-                if(neighborRouter.hasMessage(m.getId())) continue; //Skip messages already on the neighbor
+                if(neighborRouter.isTransferring()) continue; //Skip transferring nodes
+                if(neighborRouter.hasMessage(m.getId())) {
+                    continue; //Skip messages already on the neighbor
+                }
 
                 double Pri = probabilityTo(m.getTo());
-                double Prj = probabilityThrough(m.getTo(), neighborRouter.Ft);
+                double Prj = neighborRouter.probabilityTo(m.getTo());
 
                 switch(forwardStrategy){
                     case 1:
@@ -313,12 +319,13 @@ public class BFGRouter extends ActiveRouter{
                         break;
                     case 5:
                         //Behaviour based on three levels of proximity to the destination
-                        if(0 <= Pri && Pri < firstThreshold ){ //If there's no probabilistic state, do Epidemic
+                        if(0 <= Pri && Pri < zoneThreshold ){ //If there's no probabilistic state, do Epidemic
                             messages.add(new Tuple<>(m, con));
                         }else {//Hill-climbing transmission
                             if (Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0) {
                                 messages.add(new Tuple<>(m, con));
-                                deleteMessage(m.getId(), true);
+                                //log(m.getId() + "["+ m.getTo().toString()+"]" + ": Local: " + Pri + ", Prj("+con.getOtherNode(getHost()).toString()+"): " + Prj);
+                                toBeDropped.add(m.getId());
                             }
                         }
                         break;
@@ -330,7 +337,26 @@ public class BFGRouter extends ActiveRouter{
             }
         }
 
+        /*There's no messages to be forwarded*/
+        if(messages.size() == 0){
+            return null;
+        }
+
+        /*Sort the Message/Connection pairs by their deliver probability*/
+        //Collections.sort(messages, new MessageConnectionComparator());
         return tryMessagesForConnected(messages);
+    }
+
+    @Override
+    protected void transferDone(Connection con){
+        if(this.forwardStrategy == 5){
+            Message msg = con.getMessage();
+            if(toBeDropped.contains(msg.getId())){
+                //log("Dropping " + msg.getId());
+                this.deleteMessage(msg.getId(), true);
+                toBeDropped.remove(msg.getId());
+            }
+        }
     }
 
     /**
@@ -353,6 +379,30 @@ public class BFGRouter extends ActiveRouter{
     }
 
     /**
+     * Compares two neighbors of this node,  L and J are by definition, better carriers for a packet than this node,
+     * this decides who gets bigger priority according to their delivery probability
+     */
+    private class MessageConnectionComparator implements Comparator<Tuple<Message, Connection>>{
+        @Override
+        public int compare(Tuple<Message, Connection> L, Tuple<Message, Connection> J) {
+            // delivery probability of tuple1's message with tuple1's connection
+            BFGRouter routerL = (BFGRouter)L.getValue().getOtherNode(getHost()).getRouter();
+            BFGRouter routerJ = (BFGRouter)J.getValue().getOtherNode(getHost()).getRouter();
+
+            double PrJ = routerJ.probabilityTo(J.getKey().getTo());
+            double PrL = routerL.probabilityTo(L.getKey().getTo());
+
+            if(PrJ - PrL == 0){
+                return compareByQueueMode(L.getKey(), J.getKey());
+            }else if (PrJ-PrL < 0) {
+                return -1;
+            }else{
+                return 1;
+            }
+        }
+    }
+
+    /**
      * A simple function wrapper
      * @param destination The destination node
      * @return The probability that this node has to reach the {destination}
@@ -367,8 +417,8 @@ public class BFGRouter extends ActiveRouter{
         String file = stack[2].getFileName();
         int line = stack[2].getLineNumber();
 
-        String formatString = "%f {%s} %s:%d %s";
-        String message = String.format(formatString, SimClock.getTime(), function, file, line, msg);
+        String formatString = "%f [%s] {%s} %s:%d %s";
+        String message = String.format(formatString, SimClock.getTime(), getHost().toString(), function, file, line, msg);
         System.out.println(message);
     }
 
