@@ -107,6 +107,7 @@ public class BFGRouter extends ActiveRouter{
         lastDegradation = 0.0;
         creationTime = SimClock.getTime();
         toBeDropped = new ArrayList<>();
+        printParameters();
     }
 
     /**
@@ -123,10 +124,11 @@ public class BFGRouter extends ActiveRouter{
         this.forwardStrategy = r.forwardStrategy;
         this.zoneThreshold = r.zoneThreshold;
 
+        this.lastDegradation = r.lastDegradation;
+
         this.bfCounters = r.bfCounters;
         this.bfMaxCount = r.bfMaxCount;
         this.bfHashFunctions = r.bfHashFunctions;
-        creationTime = SimClock.getTime();
         toBeDropped = new ArrayList<>();
     }
 
@@ -310,8 +312,11 @@ public class BFGRouter extends ActiveRouter{
                             messages.add(new Tuple<>(m, con));
                         break;
                     case 3:
-                        if(Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0)
-                            messages.add(new Tuple<>(m, con));
+                        if(Prj > 0){
+                            if(Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0) {
+                                messages.add(new Tuple<>(m, con));
+                            }
+                        }
                         break;
                     case 4:
                         if(Pri <= forwardThreshold || Prj >= Pri + forwardThreshold || Prj == 1.0)
@@ -432,5 +437,17 @@ public class BFGRouter extends ActiveRouter{
         sb.append("\"Ft\":" + this.Ft.toReducedString());
         sb.append("}");
         return sb.toString();
+    }
+
+    protected void printParameters(){
+        StringBuffer sb = new StringBuffer();
+        sb.append("Degradation interval: " + this.degradationInterval + "\n");
+        sb.append("Degradation probability: " + this.degradationProbability + "\n");
+        sb.append("Forwarding Threshold: " + this.forwardThreshold + "\n");
+        sb.append("Forward strategy: " + this.forwardStrategy + "\n");
+        if(this.forwardStrategy == 5)
+            sb.append("Zone threshold: " + this.zoneThreshold + "\n");
+        sb.append("Bloom Filter params: [m=" + this.bfCounters + ", k=" + this.bfHashFunctions + ", c=" +this.bfMaxCount + "]\n");
+        System.out.print(sb.toString());
     }
 }

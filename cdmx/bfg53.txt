@@ -1,6 +1,5 @@
-
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-fT[%%BFGRouter.forwardingThreshold%%]-zT[%%BFGRouter.zoneThreshold%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -54,12 +53,12 @@ Events1.prefix = M
 
 
 ##Routing parameters
+Group1.deleteDelivered = true
 BFGRouter.degradationInterval = 300
 BFGRouter.degradationProbability = 0.75
-BFGRouter.forwardThreshold = 0.05
+BFGRouter.forwardingThreshold = 0.1
 BFGRouter.forwardStrategy = 5
-BFGRouter.firstThreshold = 0.3
-BFGRouter.secondThreshold = 0.95
+BFGRouter.zoneThreshold = 0.3
 BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
 BFGRouter.BFMaxCount = 32
@@ -82,7 +81,7 @@ MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 ## Reports - all report names have to be valid report classes
 # how many reports to load
-Report.nrofReports = 4
+Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)

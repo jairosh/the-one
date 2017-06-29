@@ -1,6 +1,6 @@
 
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-fT[%%BFGRouter.forwardingThreshold%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -56,7 +56,7 @@ Events1.prefix = M
 ##Routing parameters
 BFGRouter.degradationInterval = 300
 BFGRouter.degradationProbability = 0.75
-BFGRouter.forwardThreshold = 0.1
+BFGRouter.forwardingThreshold = 0.05
 BFGRouter.forwardStrategy = 3
 BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
@@ -65,7 +65,7 @@ BFGRouter.BFMaxCount = 32
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-MovementModel.rngSeed = [ 5481;    11778; 96617;   52770;   55182;   5327;    11131; 61959;   12436;    7591;   90972;   70094; 36446;   92367;   8762;    5591]
+MovementModel.rngSeed = [59004;   54008;   70; 8439;    22;  58405;   38517;   33282]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
@@ -79,7 +79,7 @@ MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 ## Reports - all report names have to be valid report classes
 # how many reports to load
-Report.nrofReports = 3
+Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
