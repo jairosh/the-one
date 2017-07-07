@@ -1,5 +1,5 @@
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-fT[%%BFGRouter.forwardingThreshold%%]-zT[%%BFGRouter.zoneThreshold%%]
+Scenario.name = [%%Group.router%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -15,7 +15,7 @@ Scenario.nrofHostGroups = 1
 
 # Common settings for all groups
 Group.movementModel = ShortestPathMapBasedMovement
-Group.router = BFGRouter
+Group.router = [SprayAndWaitRouter; BFGRouter; ProphetRouter; EpidemicRouter; DirectDeliveryRouter; FirstContactRouter; MaxPropRouter]
 Group.bufferSize = 5M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
@@ -63,11 +63,12 @@ BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
 BFGRouter.BFMaxCount = 32
 
+SprayAndWaitRouter.binaryMode = true
+SprayAndWaitRouter.nrofCopies = 6
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-#
-MovementModel.rngSeed = [44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139]
+MovementModel.rngSeed = 78802
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
@@ -81,23 +82,21 @@ MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 ## Reports - all report names have to be valid report classes
 # how many reports to load
-Report.nrofReports = 1
+Report.nrofReports = [ 3; 3; 3; 3; 3; 3; 3]
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = reportsBFG5_2/
+Report.reportDir = VISUALIZATION/
 # Report classes to load
-Report.report1 = MessageStatsReport
-Report.report2 = BufferOccupancyReport
-Report.report3 = ContactsPerHourReport
-Report.report4 = NodeDensityReport
-Report.report5 = EventLogReport
+Report.report1 = LocationSnapshotReport
+Report.report2 = MessageLocationReport
+Report.report3 = CreatedMessagesReport
+Report.report4 = BloomFilterSnapshotReport
 
-#Report.report2 = ContactTimesReport
-#Report.report3 = BloomFilterSnapshotReport
-
+# MessageLocationReport.granularity = 5
+Report.granularity = 5
 Report.NodeDensityReport.outputGnuplot = true
-
+BloomFilterSnapshotReport.interval = 5
 
 ## Optimization settings -- these affect the speed of the simulation
 ## see World class for details.

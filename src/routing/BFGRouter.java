@@ -217,7 +217,30 @@ public class BFGRouter extends ActiveRouter{
     @Override
     public void changedConnection(Connection con){
         if(con.isUp()){
-            exchangeBloomFilters(con);
+            //One node in the connection does all the work
+            if(con.isInitiator(getHost())){
+                DTNHost neighbor = con.getOtherNode(getHost());
+                if(! (neighbor.getRouter() instanceof  BFGRouter)){
+                    log("Error: This protocol can not communicate with other type of Router");
+                    return;
+                }
+
+                BFGRouter neighborRouter = (BFGRouter) neighbor.getRouter();
+                //Create a copy of each node's filter
+                BloomFilter<Integer> Fjt = new BloomFilter<Integer>(neighborRouter.Ft);
+                BloomFilter<Integer> Fit = new BloomFilter<Integer>(this.Ft);
+                //Degrade the information in that filters
+                Fjt.stochasticDegrade(degradationProbability);
+                Fit.stochasticDegrade(degradationProbability);
+
+                try {
+                    //Incorporate the information into each other's filters
+                    this.Ft.join(Fjt);
+                    neighborRouter.Ft.join(Fit);
+                } catch (InvalidObjectException e) {
+                    log(e.getMessage());
+                }
+            }
         }
     }
 
@@ -324,12 +347,14 @@ public class BFGRouter extends ActiveRouter{
                         break;
                     case 5:
                         //Behaviour based on three levels of proximity to the destination
-                        if(0 <= Pri && Pri < zoneThreshold ){ //If there's no probabilistic state, do Epidemic
+                        if(Pri == 0){
+                            //Do nothing = Direct transmision
+                            continue;
+                        }else if(Pri < zoneThreshold ){ //If there's no probabilistic state, do Epidemic
                             messages.add(new Tuple<>(m, con));
                         }else {//Hill-climbing transmission
-                            if (Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0) {
+                            if (Prj > Pri || Prj == 1.0) {
                                 messages.add(new Tuple<>(m, con));
-                                //log(m.getId() + "["+ m.getTo().toString()+"]" + ": Local: " + Pri + ", Prj("+con.getOtherNode(getHost()).toString()+"): " + Prj);
                                 toBeDropped.add(m.getId());
                             }
                         }
@@ -357,7 +382,6 @@ public class BFGRouter extends ActiveRouter{
         if(this.forwardStrategy == 5){
             Message msg = con.getMessage();
             if(toBeDropped.contains(msg.getId())){
-                //log("Dropping " + msg.getId());
                 this.deleteMessage(msg.getId(), true);
                 toBeDropped.remove(msg.getId());
             }

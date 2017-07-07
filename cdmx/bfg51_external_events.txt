@@ -1,5 +1,6 @@
+
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-fT[%%BFGRouter.forwardingThreshold%%]-zT[%%BFGRouter.zoneThreshold%%]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -34,31 +35,19 @@ Group.msgTtl = 300
 Group.nrofHosts = 400
 
 
-
-
-## Message creation parameters
-# How many event generators
+## Message creation parameters, using an external file
 Events.nrof = 1
-# Class of the first event generator
-Events1.class = MessageEventGenerator
-# (following settings are specific for the MessageEventGenerator class)
-# Creation interval in seconds (one new message every 25 to 35 seconds)
-Events1.interval = 25,35
-# Message sizes (500kB - 1MB)
-Events1.size = 500k,1M
-# range of message source/destination addresses
-Events1.hosts = 0,126
-# Message ID prefix
-Events1.prefix = M
+Events1.class = ExternalEventsQueue 
+Events1.filePath = cdmx/15Ks_800M_500KB_hosts[10-50]_seed[1].txt
 
 
 ##Routing parameters
-Group1.deleteDelivered = true
 BFGRouter.degradationInterval = 300
-BFGRouter.degradationProbability = 1.0
-BFGRouter.forwardingThreshold = 0.05
+BFGRouter.degradationProbability = 0.75
+BFGRouter.forwardThreshold = 0.1
 BFGRouter.forwardStrategy = 5
-BFGRouter.zoneThreshold = 0.3
+BFGRouter.firstThreshold = 0.3
+BFGRouter.secondThreshold = 0.95
 BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
 BFGRouter.BFMaxCount = 32
@@ -66,8 +55,8 @@ BFGRouter.BFMaxCount = 32
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-#
-MovementModel.rngSeed = [44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139]
+# 
+MovementModel.rngSeed = [ 94176;   65221;   44180;   79009; 68831;   73906;   15598;   66755;   28419; 42505;   57206;   77544;   95187; 88804;  12002]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
@@ -81,17 +70,16 @@ MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 ## Reports - all report names have to be valid report classes
 # how many reports to load
-Report.nrofReports = 1
+Report.nrofReports = 4
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = reportsBFG5_2/
+Report.reportDir = reportsBFG5_ext/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = BufferOccupancyReport
 Report.report3 = ContactsPerHourReport
 Report.report4 = NodeDensityReport
-Report.report5 = EventLogReport
 
 #Report.report2 = ContactTimesReport
 #Report.report3 = BloomFilterSnapshotReport

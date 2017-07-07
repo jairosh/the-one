@@ -55,8 +55,8 @@ Events1.prefix = M
 ##Routing parameters
 Group1.deleteDelivered = true
 BFGRouter.degradationInterval = 300
-BFGRouter.degradationProbability = 0.75
-BFGRouter.forwardingThreshold = 0.1
+BFGRouter.degradationProbability = 1.0
+BFGRouter.forwardingThreshold = 0.05
 BFGRouter.forwardStrategy = 5
 BFGRouter.zoneThreshold = 0.3
 BFGRouter.BFCounters = 512
@@ -66,8 +66,8 @@ BFGRouter.BFMaxCount = 32
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-# 57570; 55954;   92522;   32220;   9403;   17568;  25017; 75983
-MovementModel.rngSeed = [ 78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454]
+# 
+MovementModel.rngSeed = [78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
@@ -85,7 +85,7 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = reportsBFG5/
+Report.reportDir = reportsBFG5_2/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = BufferOccupancyReport

@@ -1,5 +1,6 @@
+
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-fT[%%BFGRouter.forwardingThreshold%%]-zT[%%BFGRouter.zoneThreshold%%]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -15,7 +16,7 @@ Scenario.nrofHostGroups = 1
 
 # Common settings for all groups
 Group.movementModel = ShortestPathMapBasedMovement
-Group.router = BFGRouter
+Group.router = SprayAndWaitRouter
 Group.bufferSize = 5M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
@@ -32,8 +33,9 @@ Group.okMaps = 1
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
 Group.nrofHosts = 400
+Group1.deleteDelivered = true
 
-
+SprayAndWaitRouter.binaryMode=true
 
 
 ## Message creation parameters
@@ -53,21 +55,12 @@ Events1.prefix = M
 
 
 ##Routing parameters
-Group1.deleteDelivered = true
-BFGRouter.degradationInterval = 300
-BFGRouter.degradationProbability = 1.0
-BFGRouter.forwardingThreshold = 0.05
-BFGRouter.forwardStrategy = 5
-BFGRouter.zoneThreshold = 0.3
-BFGRouter.BFCounters = 512
-BFGRouter.BFHashFunctions = 8
-BFGRouter.BFMaxCount = 32
-
+SprayAndWaitRouter.nrofCopies = 6
+SprayAndWaitRouter.binaryMode = true
 
 ## Movement model settings
-# seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-#
-MovementModel.rngSeed = [44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139]
+# seed for movement models' pseudo random number generator (default = 0), 50 seeds for multiple runs
+MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598;   78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454;   59004;   54008;   70; 8439;    22;  58405;   38517;   33282; 5481;    11778; 96617;   52770;   55182;   5327;    11131; 61959;   44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139;   4029;    90521; 98820;   3136;    35402; 64524;   37578;   16966;   84181;   91016]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
@@ -81,20 +74,22 @@ MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 ## Reports - all report names have to be valid report classes
 # how many reports to load
-Report.nrofReports = 1
+Report.nrofReports = 3
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = reportsBFG5_2/
+Report.reportDir = Binary-SprayNWait/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = BufferOccupancyReport
 Report.report3 = ContactsPerHourReport
 Report.report4 = NodeDensityReport
-Report.report5 = EventLogReport
 
 #Report.report2 = ContactTimesReport
 #Report.report3 = BloomFilterSnapshotReport
+
+Report.interval = 10
+Report.nodes = 1,3,4,5
 
 Report.NodeDensityReport.outputGnuplot = true
 
