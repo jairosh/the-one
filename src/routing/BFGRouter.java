@@ -61,10 +61,19 @@ public class BFGRouter extends ActiveRouter{
     private int bfMaxCount;      //c
 
     /**
+     * Indicates how many copies disseminate the original node when there's no probabilistic state
+     */
+    private int initialCopies;
+
+    /**
+     * Stores a list of how many copies has to be redistributed
+     */
+    private HashMap<String, Integer> copiesLeft;
+
+    /**
      * Keeps track of the time when degradation was made, this provides a rudimentary Timer
      */
     private double lastDegradation;
-    private double lastBFExchange;
 
     //List of messages that can be dropped once the transfer finishes
     private List<String> toBeDropped;
@@ -78,6 +87,7 @@ public class BFGRouter extends ActiveRouter{
     public static final String SETTINGS_BF_COUNTERS = "BFCounters";
     public static final String SETTINGS_BF_HASH_FUNCTIONS = "BFHashFunctions";
     public static final String SETTINGS_BF_MAX_COUNT = "BFMaxCount";
+    public static final String SETTINGS_NUMBER_OF_COPIES = "initialCopies";
 
     protected double creationTime;
 
@@ -90,11 +100,16 @@ public class BFGRouter extends ActiveRouter{
         Settings bfgSettings = new Settings(BFG_NS);
         degradationInterval = bfgSettings.getDouble(SETTINGS_DEG_INTERVAL, 5.0);
         degradationProbability = bfgSettings.getDouble(SETTINGS_DEG_PROBABILITY, 0.5);
-        forwardThreshold = bfgSettings.getDouble(SETTINGS_FORWARD_THRESHOLD, 0.5);
         forwardStrategy = bfgSettings.getInt(SETTINGS_FORWARD_STRATEGY, 1);
 
         if(forwardStrategy == 5){
             zoneThreshold = bfgSettings.getDouble(SETTINGS_ZONE_THRESHOLD, 0.1);
+            this.initialCopies = bfgSettings.getInt(SETTINGS_NUMBER_OF_COPIES, 8);
+            this.copiesLeft = new HashMap<>();
+        }
+
+        if(forwardStrategy != 5){
+            forwardThreshold = bfgSettings.getDouble(SETTINGS_FORWARD_THRESHOLD, 0.5);
         }
 
         bfCounters = bfgSettings.getInt(SETTINGS_BF_COUNTERS, 64);
@@ -122,7 +137,11 @@ public class BFGRouter extends ActiveRouter{
         this.degradationProbability = r.degradationProbability;
         this.forwardThreshold = r.forwardThreshold;
         this.forwardStrategy = r.forwardStrategy;
-        this.zoneThreshold = r.zoneThreshold;
+        if(this.forwardStrategy == 5) {
+            this.zoneThreshold = r.zoneThreshold;
+            this.initialCopies = r.initialCopies;
+            this.copiesLeft = new HashMap<>();
+        }
 
         this.lastDegradation = r.lastDegradation;
 
@@ -263,21 +282,6 @@ public class BFGRouter extends ActiveRouter{
         }
     }
 
-    /**
-     * Exchanges periodically the Bloom filters in all available connections. Implemented for static nodes that keep
-     * an always-active connection
-     */
-    private void helloTimer(){
-        double now = SimClock.getTime();
-        if(now - lastBFExchange >= (degradationInterval + 2.0)){ //Separate the Bloom filter exchange at least one second
-            for(Connection con : getConnections()){
-                if(con.isUp()){
-                    exchangeBloomFilters(con);
-                }
-            }
-        }
-
-    }
 
 
     /**
@@ -345,15 +349,30 @@ public class BFGRouter extends ActiveRouter{
                         if(Pri <= forwardThreshold || Prj >= Pri + forwardThreshold || Prj == 1.0)
                             messages.add(new Tuple<>(m, con));
                         break;
-                    case 5:
-                        //Behaviour based on three levels of proximity to the destination
-                        if(Pri == 0){
-                            //Do nothing = Direct transmision
-                            continue;
-                        }else if(Pri < zoneThreshold ){ //If there's no probabilistic state, do Epidemic
-                            messages.add(new Tuple<>(m, con));
-                        }else {//Hill-climbing transmission
-                            if (Prj > Pri || Prj == 1.0) {
+                    case 6:
+                        //Store if this node is the origin of the current packet
+                        boolean isOrigin = m.getFrom().equals(getHost());
+                        if(isOrigin){
+                            if(Pri < this.zoneThreshold){
+                                Integer copies = this.initialCopies;
+                                if(this.copiesLeft.containsKey(m.getId())){
+                                    copies = this.copiesLeft.get(m.getId());
+                                    if(copies == 0)
+                                        break;
+                                }
+                                //Disseminate up to ${initialCopies} copies of the message
+                                messages.add(new Tuple<>(m,con));
+                                copiesLeft.put(m.getId(), copies-1);
+                            }else{
+                                //There's already probabilistic state towards destination, transfer only to a better node
+                                if(Prj > Pri) {
+                                    messages.add(new Tuple<>(m, con));
+                                    toBeDropped.add(m.getId());
+                                }
+                            }
+                        }else{
+                            //Intermediate nodes
+                            if(Prj > Pri) {
                                 messages.add(new Tuple<>(m, con));
                                 toBeDropped.add(m.getId());
                             }
@@ -469,8 +488,10 @@ public class BFGRouter extends ActiveRouter{
         sb.append("Degradation probability: " + this.degradationProbability + "\n");
         sb.append("Forwarding Threshold: " + this.forwardThreshold + "\n");
         sb.append("Forward strategy: " + this.forwardStrategy + "\n");
-        if(this.forwardStrategy == 5)
+        if(this.forwardStrategy == 5) {
             sb.append("Zone threshold: " + this.zoneThreshold + "\n");
+            sb.append("Initial copies: " + this.initialCopies + "\n");
+        }
         sb.append("Bloom Filter params: [m=" + this.bfCounters + ", k=" + this.bfHashFunctions + ", c=" +this.bfMaxCount + "]\n");
         System.out.print(sb.toString());
     }
