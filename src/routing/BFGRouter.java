@@ -312,12 +312,12 @@ public class BFGRouter extends ActiveRouter{
      */
     private Tuple<Message, Connection> forwardMessages(){
         List<Tuple<Message, Connection>> messages = new ArrayList<Tuple<Message, Connection>>();
-        Collection<Message> msgCollection = getMessageCollection();
+        List<Message> msgCollection = sortByQueueMode(getActiveMessages());
 
-        //For each message
-        for(Message m : msgCollection){
-            //Check all the connections to send it (may be dropped)
-            for(Connection con : getConnections()){
+        //Check all the connections to send it (may be dropped)
+        for(Connection con : getConnections()){
+            //For each message
+            for(Message m : msgCollection){
                 DTNHost neighbor = con.getOtherNode(getHost());
                 BFGRouter neighborRouter  = (BFGRouter) neighbor.getRouter();
 
@@ -349,7 +349,7 @@ public class BFGRouter extends ActiveRouter{
                         if(Pri <= forwardThreshold || Prj >= Pri + forwardThreshold || Prj == 1.0)
                             messages.add(new Tuple<>(m, con));
                         break;
-                    case 6:
+                    case 5:
                         //Store if this node is the origin of the current packet
                         boolean isOrigin = m.getFrom().equals(getHost());
                         if(isOrigin){
@@ -394,6 +394,37 @@ public class BFGRouter extends ActiveRouter{
         /*Sort the Message/Connection pairs by their deliver probability*/
         //Collections.sort(messages, new MessageConnectionComparator());
         return tryMessagesForConnected(messages);
+    }
+
+    /**
+     * Creates a list of the messages in the buffer that can be sent
+     * @return The created list
+     */
+    private List getActiveMessages() {
+        List<Message> list = new ArrayList<Message>();
+        for (Message m : getMessageCollection()) {
+            Integer nrofCopies = this.copiesLeft.get(m.getId());
+
+            if (nrofCopies!=null && nrofCopies == 0)
+                continue;
+
+            list.add(m);
+        }
+
+        return list;
+    }
+
+    /**
+     * After receiving a message, register the nyumber of copies left for this node to disseminate
+     * @param id The message ID
+     * @param from The host that sent the message
+     * @return The message
+     */
+    @Override
+    public Message messageTransferred(String id, DTNHost from){
+        Message m = super.messageTransferred(id, from);
+        this.copiesLeft.put(id, 1);
+        return m;
     }
 
     @Override

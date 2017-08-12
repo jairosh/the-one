@@ -1,5 +1,5 @@
 ## Scenario settings
-Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-fT[%%BFGRouter.forwardingThreshold%%]-zT[%%BFGRouter.zoneThreshold%%]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-[%%Group.nrofHosts%%n]-m[%%BFGRouter.BFCounters%%]-k[%%BFGRouter.BFHashFunctions%%]-s[%%BFGRouter.forwardStrategy%%]-dT[%%BFGRouter.degradationInterval%%]-dPr[%%BFGRouter.degradationProbability%%]-zT[%%BFGRouter.zoneThreshold%%]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -16,7 +16,7 @@ Scenario.nrofHostGroups = 1
 # Common settings for all groups
 Group.movementModel = ShortestPathMapBasedMovement
 Group.router = BFGRouter
-Group.bufferSize = 5M
+Group.bufferSize = 50M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
 Group.interface1 = highspeedInterface
@@ -31,7 +31,7 @@ Group.okMaps = 1
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 400
+Group.nrofHosts = 300
 
 
 
@@ -56,18 +56,18 @@ Events1.prefix = M
 Group1.deleteDelivered = true
 BFGRouter.degradationInterval = 300
 BFGRouter.degradationProbability = 1.0
-BFGRouter.forwardingThreshold = 0.05
 BFGRouter.forwardStrategy = 5
-BFGRouter.zoneThreshold = 0.3
+BFGRouter.zoneThreshold = 0.5
 BFGRouter.BFCounters = 512
 BFGRouter.BFHashFunctions = 8
 BFGRouter.BFMaxCount = 32
+BFGRouter.initialCopies = 8
 
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
-#
-MovementModel.rngSeed = [ 78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598 ]
+# 
+MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598 ]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000
@@ -85,7 +85,7 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = reportsBFG5_2/
+Report.reportDir = reportsBFG5/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = BufferOccupancyReport

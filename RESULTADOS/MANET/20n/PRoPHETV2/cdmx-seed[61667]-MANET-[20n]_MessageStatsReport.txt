@@ -1,0 +1,20 @@
+Message stats for scenario cdmx-seed[61667]-MANET-[20n]
+sim_time: 21600.1000
+created: 733
+started: 62
+relayed: 62
+aborted: 0
+dropped: 659
+removed: 4
+delivered: 4
+delivery_prob: 0.0055
+response_prob: 0.0000
+overhead_ratio: 14.5000
+latency_avg: 1366.9500
+latency_med: 1582.2000
+hopcount_avg: 1.0000
+hopcount_med: 1
+buffertime_avg: 3336.0303
+buffertime_med: 3223.0000
+rtt_avg: NaN
+rtt_med: NaN
