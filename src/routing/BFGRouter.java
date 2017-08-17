@@ -75,6 +75,11 @@ public class BFGRouter extends ActiveRouter{
      */
     private double lastDegradation;
 
+    /**
+     * Stores the hashes for each node, due to FNV Hash being too expensive
+     */
+    private HashMap<DTNHost, List<Integer>> identityCache;
+
     //List of messages that can be dropped once the transfer finishes
     private List<String> toBeDropped;
 
@@ -122,6 +127,7 @@ public class BFGRouter extends ActiveRouter{
         lastDegradation = 0.0;
         creationTime = SimClock.getTime();
         toBeDropped = new ArrayList<>();
+        identityCache = new HashMap<DTNHost, List<Integer>>();
         printParameters();
     }
 
@@ -148,7 +154,9 @@ public class BFGRouter extends ActiveRouter{
         this.bfCounters = r.bfCounters;
         this.bfMaxCount = r.bfMaxCount;
         this.bfHashFunctions = r.bfHashFunctions;
+        identityCache = new HashMap<>(r.identityCache);
         toBeDropped = new ArrayList<>();
+
     }
 
 
@@ -446,7 +454,12 @@ public class BFGRouter extends ActiveRouter{
      */
     private double probabilityThrough(DTNHost destination, BloomFilter<Integer> intermediate){
         double Pr = 1.0;
-        for(Integer i : intermediate.hashesFor(destination.getAddress())){
+        List<Integer> theHashes = identityCache.get(destination);
+        if( theHashes == null ){
+            theHashes = intermediate.hashesFor(destination.getAddress());
+            this.identityCache.put(destination, theHashes);
+        }
+        for(Integer i : theHashes){
             try {
                 Pr *= intermediate.counterAt(i);
             }catch (IndexOutOfBoundsException e){

@@ -54,8 +54,8 @@ Events1.prefix = M
 
 
 ##Routing parameters
-SprayAndWaitRouter.nrofCopies = 6
-SprayAndWaitRouter.binaryMode = true
+SprayAndWaitRouter.nrofCopies = 4
+SprayAndWaitRouter.binaryMode = false
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 50 seeds for multiple runs
