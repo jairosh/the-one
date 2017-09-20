@@ -31,7 +31,7 @@ Group.okMaps = 1
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 300
+Group.nrofHosts = 500
 
 
 

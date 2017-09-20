@@ -337,59 +337,36 @@ public class BFGRouter extends ActiveRouter{
                 double Pri = probabilityTo(m.getTo());
                 double Prj = neighborRouter.probabilityTo(m.getTo());
 
-                switch(forwardStrategy){
-                    case 1:
-                        if(Prj >= Pri || Prj == 1.0)
-                            messages.add(new Tuple<>(m, con));
-                        break;
-                    case 2:
-                        if(Prj >= Pri + forwardThreshold || Prj == 1.0)
-                            messages.add(new Tuple<>(m, con));
-                        break;
-                    case 3:
-                        if(Prj > 0){
-                            if(Prj >= (Pri * (1.0 + forwardThreshold)) || Prj == 1.0) {
-                                messages.add(new Tuple<>(m, con));
-                            }
+                //Store if this node is the origin of the current packet
+                boolean isOrigin = m.getFrom().equals(getHost());
+                if(isOrigin){
+                    if(Pri < this.zoneThreshold){
+                        Integer copies = this.initialCopies;
+                        if(this.copiesLeft.containsKey(m.getId())){
+                            copies = this.copiesLeft.get(m.getId());
+                            if(copies == 0)
+                                continue;
                         }
-                        break;
-                    case 4:
-                        if(Pri <= forwardThreshold || Prj >= Pri + forwardThreshold || Prj == 1.0)
+                        //Disseminate up to ${initialCopies} copies of the message
+                        messages.add(new Tuple<>(m,con));
+                        copiesLeft.put(m.getId(), copies-1);
+                    }else{
+                        //There's already probabilistic state towards destination, transfer only to a better node
+                        if(Prj > Pri) {
                             messages.add(new Tuple<>(m, con));
-                        break;
-                    case 5:
-                        //Store if this node is the origin of the current packet
-                        boolean isOrigin = m.getFrom().equals(getHost());
-                        if(isOrigin){
-                            if(Pri < this.zoneThreshold){
-                                Integer copies = this.initialCopies;
-                                if(this.copiesLeft.containsKey(m.getId())){
-                                    copies = this.copiesLeft.get(m.getId());
-                                    if(copies == 0)
-                                        break;
-                                }
-                                //Disseminate up to ${initialCopies} copies of the message
-                                messages.add(new Tuple<>(m,con));
-                                copiesLeft.put(m.getId(), copies-1);
-                            }else{
-                                //There's already probabilistic state towards destination, transfer only to a better node
-                                if(Prj > Pri) {
-                                    messages.add(new Tuple<>(m, con));
-                                    toBeDropped.add(m.getId());
-                                }
-                            }
-                        }else{
-                            //Intermediate nodes
-                            if(Prj > Pri) {
-                                messages.add(new Tuple<>(m, con));
-                                toBeDropped.add(m.getId());
-                            }
+                            toBeDropped.add(m.getId());
                         }
-                        break;
-                    default:
-                        log("Illegal forwarding strategy");
-                        System.exit(1);
-                        break;
+                    }
+                }else{
+                    //Intermediate nodes
+                    if(oppositeDirection(neighbor)){ //Avoid sending the packet to a node that moves away from the dest.
+                        continue;
+                    }
+
+                    if(Prj > Pri) {
+                        messages.add(new Tuple<>(m, con));
+                        toBeDropped.add(m.getId());
+                    }
                 }
             }
         }
@@ -539,4 +516,49 @@ public class BFGRouter extends ActiveRouter{
         sb.append("Bloom Filter params: [m=" + this.bfCounters + ", k=" + this.bfHashFunctions + ", c=" +this.bfMaxCount + "]\n");
         System.out.print(sb.toString());
     }
+
+    /**
+     * Determine wether this node and another one travel in opposite directions
+     * @param other The other node
+     * @return true if they are travelling in opposite directions
+     */
+    private boolean oppositeDirection(DTNHost other){
+        Coord pos1 = getHost().getLocation();
+        Coord pos2 = other.getLocation();
+        Coord nextPos1 = getHost().getPath().getNextWaypoint();
+        Coord nextPos2 = other.getPath().getNextWaypoint();
+
+        Vector2D thisNode = new Vector2D(pos1.getX(), pos1.getY(), nextPos1.getX(), nextPos1.getY());
+        Vector2D neighbor = new Vector2D(pos2.getX(), pos2.getY(), nextPos2.getX(), nextPos2.getY());
+
+        return thisNode.oppositeQuadrant(neighbor);
+    }
+
+    class Vector2D{
+        private double x;
+        private double y;
+        private double magnitude;
+        private double direction;
+
+        public double getMagnitude(){return this.magnitude; }
+        public double getDirection(){return this.direction; }
+
+        public Vector2D(double x1, double y1, double x2, double y2){
+            x = x2 - x1;
+            y = y2 - y1;
+            magnitude = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+            direction = Math.atan((y2-y1)/(x2-x1));
+        }
+
+        public double dot(Vector2D other){
+            return this.x*other.x + this.y*other.y;
+        }
+
+        public boolean oppositeQuadrant(Vector2D other){
+            boolean testX = (this.x*other.x) < 0;
+            boolean testY = (this.y*other.y) < 0;
+            return testX && testY;
+        }
+
+    };
 }

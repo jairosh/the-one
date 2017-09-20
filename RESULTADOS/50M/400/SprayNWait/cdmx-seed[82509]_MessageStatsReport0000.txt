@@ -1,0 +1,20 @@
+Message stats for scenario cdmx-seed[82509]
+sim_time: 21600.1000
+created: 732
+started: 2599
+relayed: 2599
+aborted: 0
+dropped: 296
+removed: 709
+delivered: 432
+delivery_prob: 0.5902
+response_prob: 0.0000
+overhead_ratio: 5.0162
+latency_avg: 4916.5852
+latency_med: 3865.3000
+hopcount_avg: 1.7685
+hopcount_med: 2
+buffertime_avg: 9471.7254
+buffertime_med: 8332.1000
+rtt_avg: NaN
+rtt_med: NaN

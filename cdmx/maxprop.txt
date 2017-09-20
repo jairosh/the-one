@@ -17,7 +17,7 @@ Scenario.nrofHostGroups = 1
 # Common settings for all groups
 Group.movementModel = ShortestPathMapBasedMovement
 Group.router = MaxPropRouter
-Group.bufferSize = 7M
+Group.bufferSize = 50M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
 Group.interface1 = highspeedInterface
@@ -32,7 +32,7 @@ Group.okMaps = 1
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 300
+Group.nrofHosts = 500
 Group1.deleteDelivered = true
 
 
@@ -61,7 +61,7 @@ MaxPropRouter.probSetMaxSize = 50
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 50 seeds for multiple runs
-MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598;   78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454;   59004;   54008;   70; 8439;    22;  58405;   38517;   33282; 5481;    11778; 96617;   52770;   55182;   5327;    11131; 61959;   44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139;   4029;    90521; 98820;   3136;    35402; 64524;   37578;   16966;   84181;   91016]
+MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906; 15598;   78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454;     59004;   54008;   70; 8439;    22;  58405;   38517;   33282; 5481;    11778; 96617;   52770;   55182;   5327;    11131; 61959;   44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139;   4029;    90521; 98820;   3136;    35402; 64524;   37578;   16966;   84181;   91016]
 
 # World's size for Movement Models without implicit size (width, height; meters)
 MovementModel.worldSize = 35000,25000

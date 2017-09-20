@@ -16,7 +16,7 @@ Scenario.nrofHostGroups = 1
 # Common settings for all groups
 Group.movementModel = RandomWaypoint
 Group.router = ProphetRouter
-Group.bufferSize = 5M
+Group.bufferSize = 50M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
 Group.interface1 = highspeedInterface
@@ -34,7 +34,7 @@ Group.speed = 0.5, 2.7
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 200
+Group.nrofHosts = 500
 
 
 ## Message creation parameters
@@ -70,7 +70,7 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = RESULTADOS/MANET/PRoPHET/
+Report.reportDir = RESULTADOS/50M/MANET/PRoPHET/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = MessageLocationReport

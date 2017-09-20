@@ -17,7 +17,7 @@ Scenario.nrofHostGroups = 1
 # Common settings for all groups
 Group.movementModel = ShortestPathMapBasedMovement
 Group.router = EpidemicRouter
-Group.bufferSize = 7M
+Group.bufferSize = 50M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
 Group.interface1 = highspeedInterface
@@ -32,7 +32,7 @@ Group.okMaps = 1
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 300
+Group.nrofHosts = 500
 Group1.deleteDelivered = true
 
 
