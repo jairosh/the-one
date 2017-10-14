@@ -754,12 +754,13 @@ public class BFGMPRouter extends ActiveRouter {
 	public void printTupleList(List<Tuple<Message, Connection>> list){
         DecimalFormat dFormat = new DecimalFormat("0.000");
 	    System.out.println("----------------------Node " + getHost().toString() + "@" + SimClock.getTime() + "---------------------");
-	    System.out.println("MSG \tPri\tPrj\thopCount");
+	    System.out.println("MSG\tDST\tPri\tPrj\thops1\thops2");
 	    for( Tuple<Message, Connection> entry : list){
 	        Message m = entry.getKey();
 	        Connection c = entry.getValue();
             StringBuffer sb = new StringBuffer();
             sb.append(m.getId()).append("\t");
+            sb.append(c.getOtherNode(getHost())).append("\t");
             double pr = bloomFilterDeliveryProbability(getHost(), m.getTo());
             sb.append(dFormat.format(pr)).append("\t");
             pr = bloomFilterDeliveryProbability(c.getOtherNode(getHost()), m.getTo());
@@ -793,33 +794,24 @@ public class BFGMPRouter extends ActiveRouter {
          */
         @Override
         public int compare(Message m1, Message m2) {
-	        double pr1, pr2;
+	        double pri, prj;
 	        int hopCount1 = m1.getHopCount();
 	        int hopCount2 = m2.getHopCount();
 
             //If the messages have the same hop count, then compare by delivery probability
-            pr1 = bloomFilterDeliveryProbability(from1, m1.getTo());
-            pr2 = bloomFilterDeliveryProbability(from2, m2.getTo());
+            pri = bloomFilterDeliveryProbability(from1, m1.getTo());
+            prj = bloomFilterDeliveryProbability(from2, m2.getTo());
 
-            if(pr1 == pr2){
-                //The messages with lower hop count should be sent first
-                if (hopCount1 < hopCount2) {
+            if(prj > pri){
+                return 1;
+            }else if(prj == pri){
+                if(hopCount2 < hopCount1){
                     return 1;
-                }else if (hopCount1 > hopCount2) {
-                    return -1;
-                } else {
+                }else if(hopCount1 == hopCount2){
                     return compareByQueueMode(m1, m2);
                 }
             }
-
-            //Best delivery probability gets higher priority
-            if(pr1 > pr2){
-                return 1;
-            }else if(pr1 < pr1){
-                return -1;
-            }
-
-            return 0;
+            return -1;
         }
     }
 
@@ -835,6 +827,8 @@ public class BFGMPRouter extends ActiveRouter {
             DTNHost from2 = tuple2.getValue().getOtherNode(getHost());
 
             comp = new BloomFilterMessageComparator(from1, from2);
+            Message m1 = tuple1.getKey();
+            Message m2 = tuple2.getKey();
             return comp.compare(tuple1.getKey(), tuple2.getKey());
         }
     }
