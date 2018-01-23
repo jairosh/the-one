@@ -360,4 +360,16 @@ public class Message implements Comparable<Message> {
 		this.appID = appID;
 	}
 
+	/**
+     * Initial TTL set for the message; required by SeerRouter
+     *
+     * @return Initial TTL of the message
+     */
+    public int getInitialTtl() {
+        if (this.initTtl == INFINITE_TTL) {
+            return Integer.MAX_VALUE;
+        } else {
+            return (int) this.initTtl;
+        }
+    }
 }
