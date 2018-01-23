@@ -1,5 +1,5 @@
 ## Scenario settings
-Scenario.name = cdmx-new-seed[%%MovementModel.rngSeed%%]-[%%Group.nrofHosts%%n]
+Scenario.name = MANET-seed[%%MovementModel.rngSeed%%]-[%%Group.nrofHosts%%]n
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -14,7 +14,7 @@ highspeedInterface.transmitRange = 100
 Scenario.nrofHostGroups = 1
 
 # Common settings for all groups
-Group.movementModel = ShortestPathMapBasedMovement
+Group.movementModel = RandomWaypoint
 Group.router = BFGMPRouter
 Group.bufferSize = 50M
 Group.waitTime = 0, 120
@@ -23,17 +23,14 @@ Group.interface1 = highspeedInterface
 
 # Walking speeds
 #Group.speed = 0.5, 1.5
+Group.speed = 0.5, 2.7
 # 10-50 km/h
-Group.speed = 2.7, 13.9
-
-Group.okMaps = 1
+#Group.speed = 2.7, 13.9
 
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 400
-
-
+Group.nrofHosts = 300
 
 
 ## Message creation parameters
@@ -47,7 +44,7 @@ Events1.interval = 25,35
 # Message sizes (500kB - 1MB)
 Events1.size = 500k,1M
 # range of message source/destination addresses
-Events1.hosts = 0,126
+Events1.hosts = 0,200
 # Message ID prefix
 Events1.prefix = M
 
@@ -60,25 +57,17 @@ BFGMPRouter.BFCounters = 512
 BFGMPRouter.BFHashFunctions = 8
 BFGMPRouter.BFMaxCount = 32
 BFGMPRouter.PureMaxPROP = false
-BFGMPRouter.weightAlpha = 0.5
-BFGMPRouter.weightBeta = 10
-BFGMPRouter.weightGamma = 0.3
-BFGMPRouter.weightDelta = 0.4
 
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0), 100 seeds for multiple runs
 # 
-MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598;   78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454;   59004;   54008;   70; 8439;    22;  58405;   38517;   33282; 5481;    11778; 96617;   52770;   55182;   5327;    11131; 61959;   44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139;   4029;    90521; 98820;   3136;    35402; 64524;   37578;   16966;   84181;   91016 ]
+MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598; 78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454; 59004;   54008;   70; 8439;    22;  58405;   38517;   33282; 5481;    11778; 96617;   52770;   55182;   5327;     11131; 61959; 44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139; 4029;    90521; 98820;   3136;    35402; 64524;   37578;   16966;  84181;   91016]
 
 # World's size for Movement Models without implicit size (width, height; meters)
-MovementModel.worldSize = 35000,25000
+MovementModel.worldSize = 15000,15000
 # How long time to move hosts in the world before real simulation
 MovementModel.warmup = 1000
-
-## Map based movement -movemetn model sepcific settings
-MapBasedMovement.nrofMapFiles = 1
-MapBasedMovement.mapFile1 = cdmx/main.wkt
 
 
 ## Reports - all report names have to be valid report classes
@@ -87,18 +76,17 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = BFGMP/
+Report.reportDir = BFGMP300/
 # Report classes to load
 Report.report1 = MessageStatsReport
-Report.report2 = BufferOccupancyReport
-Report.report3 = ContactsPerHourReport
-Report.report4 = NodeDensityReport
+Report.report2 = MessageLocationReport
+Report.report3 = BloomFilterSnapshotReport
+Report.report4 = LocationSnapshotReport
 
-#Report.report2 = ContactTimesReport
-#Report.report3 = BloomFilterSnapshotReport
-
+# MessageLocationReport.granularity = 5
+Report.granularity = 5
 Report.NodeDensityReport.outputGnuplot = true
-
+BloomFilterSnapshotReport.interval = 5
 
 ## Optimization settings -- these affect the speed of the simulation
 ## see World class for details.

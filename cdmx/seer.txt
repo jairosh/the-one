@@ -1,5 +1,5 @@
 ## Scenario settings
-Scenario.name = cdmx-new-seed[%%MovementModel.rngSeed%%]-[%%Group.nrofHosts%%n]
+Scenario.name = cdmx-seed[%%MovementModel.rngSeed%%]-[%%Group.nrofHosts%%n]
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
@@ -15,7 +15,7 @@ Scenario.nrofHostGroups = 1
 
 # Common settings for all groups
 Group.movementModel = ShortestPathMapBasedMovement
-Group.router = BFGMPRouter
+Group.router = SeerRouter
 Group.bufferSize = 50M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
@@ -31,7 +31,7 @@ Group.okMaps = 1
 
 # Message TTL of 300 minutes (5 hours)
 Group.msgTtl = 300
-Group.nrofHosts = 400
+Group.nrofHosts = 500
 
 
 
@@ -54,16 +54,6 @@ Events1.prefix = M
 
 ##Routing parameters
 Group1.deleteDelivered = true
-BFGMPRouter.degradationInterval = 300
-BFGMPRouter.zoneThreshold = 0.5
-BFGMPRouter.BFCounters = 512
-BFGMPRouter.BFHashFunctions = 8
-BFGMPRouter.BFMaxCount = 32
-BFGMPRouter.PureMaxPROP = false
-BFGMPRouter.weightAlpha = 0.5
-BFGMPRouter.weightBeta = 10
-BFGMPRouter.weightGamma = 0.3
-BFGMPRouter.weightDelta = 0.4
 
 
 ## Movement model settings
@@ -87,7 +77,7 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = BFGMP/
+Report.reportDir = SeeR/
 # Report classes to load
 Report.report1 = MessageStatsReport
 Report.report2 = BufferOccupancyReport
