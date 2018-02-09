@@ -18,8 +18,6 @@ import java.util.Set;
 
 import core.*;
 import org.ipn.cic.ndsrg.BloomFilter;
-import routing.maxprop.MaxPropDijkstra;
-import routing.maxprop.MeetingProbabilitySet;
 import routing.util.RoutingInfo;
 import util.Tuple;
 
@@ -29,21 +27,12 @@ public class BFGMPRouter extends ActiveRouter {
 
 	/** IDs of the messages that are known to have reached the final dst */
 	private Set<String> ackedMessageIds;
-	/** mapping of the current costs for all messages. This should be set to
-	 * null always when the costs should be updated (a host is met or a new
-	 * message is received) */
 
 	/** Map of which messages have been sent to which hosts from this host */
 	private Map<DTNHost, Set<String>> sentMessages;
 
 
-    /**
-     * ************************************************************************
-     */
-    /**
-     * Each host has two Bloom filters:
-     */
-    /**
+    /** Each host has two Bloom filters:
      * The first Bloom filter contains all the information gathered by the node and its neighbors
      */
     private BloomFilter<Integer> Ft;
@@ -203,7 +192,7 @@ public class BFGMPRouter extends ActiveRouter {
     private void degradationTimer(){
         double now = SimClock.getTime();
         if(now - lastDegradation >= degradationInterval){
-            /**Degrade the filter**/
+            //Degrade the filter
             this.Ft.deterministicDegradation();
             try {
                 this.Ft.join(F_STAR);
@@ -287,9 +276,7 @@ public class BFGMPRouter extends ActiveRouter {
 			validMessages.add(m);
 		}
 
-		Collections.sort(validMessages, new BloomFilterMessageComparator());
-
-
+		validMessages.sort(new BloomFilterMessageComparator());
 		return validMessages.get(validMessages.size()-1); // return last message
 	}
 
@@ -318,7 +305,7 @@ public class BFGMPRouter extends ActiveRouter {
      * @param to The destination node, only the identity of the node is used
      * @return The delivery probability at the origin node
      */
-	public double bloomFilterDeliveryProbability(DTNHost from, DTNHost to){
+	private double bloomFilterDeliveryProbability(DTNHost from, DTNHost to){
 	    MessageRouter mr = from.getRouter();
 	    assert mr instanceof BFGMPRouter : "Incorrect router module";
         BloomFilter<Integer> Fit = new BloomFilter<Integer>(((BFGMPRouter) mr).Ft);
@@ -389,7 +376,8 @@ public class BFGMPRouter extends ActiveRouter {
 			return null;
 		}
 
-		Collections.sort(messages, new BloomFilterQueueComparator());
+		// Collections.sort(messages, new BloomFilterQueueComparator());
+		messages.sort(new BloomFilterQueueComparator());
 		//printTupleList(messages);
 
 		return tryMessagesForConnected(messages);
@@ -408,9 +396,8 @@ public class BFGMPRouter extends ActiveRouter {
 	}
 
 	@Override
-	public MessageRouter replicate() {
-		BFGMPRouter r = new BFGMPRouter(this);
-		return r;
+	public MessageRouter replicate(){
+		return new BFGMPRouter(this);
 	}
 
 
@@ -425,7 +412,7 @@ public class BFGMPRouter extends ActiveRouter {
 	    for( Tuple<Message, Connection> entry : list){
 	        Message m = entry.getKey();
 	        Connection c = entry.getValue();
-            StringBuffer sb = new StringBuffer();
+            StringBuilder sb = new StringBuilder();
 
             sb.append(String.format("%-8s%-8s", m.getId(), c.getOtherNode(getHost())));
 
@@ -461,8 +448,8 @@ public class BFGMPRouter extends ActiveRouter {
 
         /**
          * Compares two messages for overall priority based on the delivery probability of the nodes (if supplied)
-         * @param m1
-         * @param m2
+         * @param m1 The first message to compare
+         * @param m2 The second message to compare
          * @return Returns -1 if m1<m2, zero if m1=m2, or 1 if m1>m2.
          */
         @Override
@@ -516,7 +503,7 @@ public class BFGMPRouter extends ActiveRouter {
 	/**
 	 * Calculates the delta for the delivery probability for a particular message, between this node and a neighbor
 	 * @param m The message
-	 * @param neighbor
+	 * @param neighbor The DTNHost object to calculate the delta
 	 * @return The delta, contained between [-1, 1]
 	 */
     private double delta(Message m, DTNHost neighbor){
@@ -534,9 +521,8 @@ public class BFGMPRouter extends ActiveRouter {
 		return sum / (1.0*bfMaxCount*bfCounters);
 	}
 
-	public Double rho(Double saturation){
-        Double weight = Math.exp(-1.0 * expWeight * saturation);
-        return weight;
+	private Double rho(Double saturation){
+        return Math.exp(-1.0 * expWeight * saturation);
     }
 
 
