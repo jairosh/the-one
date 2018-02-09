@@ -76,12 +76,9 @@ public class BFGMPRouter extends ActiveRouter {
     private HashMap<DTNHost, List<Integer>> identityCache;
 
     /**
-     * Sigmoid weight parameters
+     * Exponential function for weight  \rho (S) = e^{-cS}, where expWeight = c
      */
-    private Double weightAlpha;
-    private Double weightBeta;
-    private Double weightDelta;
-    private Double weightGamma;
+    private Double expWeight;
 
 
     public static final String DEG_INTERVAL = "degradationInterval";
@@ -89,10 +86,7 @@ public class BFGMPRouter extends ActiveRouter {
     public static final String BF_HASH_FUNCTIONS = "BFHashFunctions";
     public static final String BF_MAX_COUNT = "BFMaxCount";
     public static final String ZONE_THRESHOLD = "zoneThreshold";
-    public static final String WEIGHT_ALPHA = "weightAlpha";
-    public static final String WEIGHT_BETA = "weightBeta";
-    public static final String WEIGHT_GAMMA = "weightGamma";
-    public static final String WEIGHT_DELTA = "weightDelta";
+    public static final String EXP_WEIGHT = "expWeight";
 
 
 	/**
@@ -111,11 +105,8 @@ public class BFGMPRouter extends ActiveRouter {
         bfMaxCount = routerSettings.getInt(BF_MAX_COUNT, 32);
         zoneThreshold = routerSettings.getDouble(ZONE_THRESHOLD, 0.5);
 
-        //Sigmoid parameters
-        weightAlpha = routerSettings.getDouble(WEIGHT_ALPHA);
-        weightBeta = routerSettings.getDouble(WEIGHT_BETA);
-        weightDelta = routerSettings.getDouble(WEIGHT_DELTA);
-        weightGamma = routerSettings.getDouble(WEIGHT_GAMMA);
+
+        expWeight = routerSettings.getDouble(EXP_WEIGHT);
 
         this.F_STAR = new BloomFilter<Integer>(bfCounters, bfHashFunctions, bfMaxCount);
         this.Ft = new BloomFilter<Integer>(bfCounters, bfHashFunctions, bfMaxCount);
@@ -140,10 +131,7 @@ public class BFGMPRouter extends ActiveRouter {
 		this.bfMaxCount = r.bfMaxCount;
 		this.zoneThreshold = r.zoneThreshold;
 
-		this.weightAlpha = r.weightAlpha;
-		this.weightBeta = r.weightBeta;
-		this.weightDelta = r.weightDelta;
-		this.weightGamma = r.weightGamma;
+		this.expWeight = r.expWeight;
 
 		this.F_STAR = new BloomFilter<Integer>(r.F_STAR);
 		this.Ft = new BloomFilter<Integer>(r.Ft);
@@ -390,7 +378,7 @@ public class BFGMPRouter extends ActiveRouter {
 				Double rho = rho(getFilterSaturation());
                 Double Pr_neighbor = bloomFilterDeliveryProbability(other, m.getTo());
                 Double Pr_local = bloomFilterDeliveryProbability(getHost(), m.getTo());
-                if(Pr_neighbor - rho > Pr_local){
+				if(Pr_neighbor + rho > Pr_local){
                     messages.add(new Tuple<Message, Connection>(m, con));
                 }
 
@@ -547,7 +535,9 @@ public class BFGMPRouter extends ActiveRouter {
 	}
 
 	public Double rho(Double saturation){
-        Double weight = (weightAlpha * Math.tanh(weightBeta * (saturation - weightDelta))) - weightGamma;
+        Double weight = Math.exp(-1.0 * expWeight * saturation);
         return weight;
     }
+
+
 }
