@@ -22,14 +22,14 @@ import routing.util.RoutingInfo;
 import util.Tuple;
 
 public class BFGMPRouter extends ActiveRouter {
-	/** Router's setting namespace ({@value})*/
-	public static final String SETTINGS_NS = "BFGMPRouter";
+    /** Router's setting namespace ({@value})*/
+    public static final String SETTINGS_NS = "BFGMPRouter";
 
-	/** IDs of the messages that are known to have reached the final dst */
-	private Set<String> ackedMessageIds;
+    /** IDs of the messages that are known to have reached the final dst */
+    private Set<String> ackedMessageIds;
 
-	/** Map of which messages have been sent to which hosts from this host */
-	private Map<DTNHost, Set<String>> sentMessages;
+    /** Map of which messages have been sent to which hosts from this host */
+    private Map<DTNHost, Set<String>> sentMessages;
 
 
     /** Each host has two Bloom filters:
@@ -78,16 +78,16 @@ public class BFGMPRouter extends ActiveRouter {
     public static final String EXP_WEIGHT = "expWeight";
 
 
-	/**
-	 * Constructor. Creates a new prototype router based on the settings in
-	 * the given Settings object.
-	 * @param settings The settings object
-	 */
-	public BFGMPRouter(Settings settings) {
-		super(settings);
-		Settings routerSettings = new Settings(SETTINGS_NS);
+    /**
+     * Constructor. Creates a new prototype router based on the settings in
+     * the given Settings object.
+     * @param settings The settings object
+     */
+    public BFGMPRouter(Settings settings) {
+        super(settings);
+        Settings routerSettings = new Settings(SETTINGS_NS);
 
-		//Bloom filters configuration
+        //Bloom filters configuration
         degradationInterval = routerSettings.getDouble(DEG_INTERVAL, 300.0);
         bfCounters = routerSettings.getInt(BF_COUNTERS, 64);
         bfHashFunctions = routerSettings.getInt(BF_HASH_FUNCTIONS, 6);
@@ -105,30 +105,30 @@ public class BFGMPRouter extends ActiveRouter {
 
     }
 
-	/**
-	 * Copy constructor. Creates a new router based on the given prototype.
-	 * @param r The router prototype where setting values are copied from
-	 */
-	protected BFGMPRouter(BFGMPRouter r) {
-		super(r);
-		this.ackedMessageIds = new HashSet<String>();
-		this.sentMessages = new HashMap<DTNHost, Set<String>>();
+    /**
+     * Copy constructor. Creates a new router based on the given prototype.
+     * @param r The router prototype where setting values are copied from
+     */
+    protected BFGMPRouter(BFGMPRouter r) {
+        super(r);
+        this.ackedMessageIds = new HashSet<String>();
+        this.sentMessages = new HashMap<DTNHost, Set<String>>();
 
-		this.degradationInterval = r.degradationInterval;
-		this.bfCounters = r.bfCounters;
-		this.bfHashFunctions = r.bfHashFunctions;
-		this.bfMaxCount = r.bfMaxCount;
-		this.zoneThreshold = r.zoneThreshold;
+        this.degradationInterval = r.degradationInterval;
+        this.bfCounters = r.bfCounters;
+        this.bfHashFunctions = r.bfHashFunctions;
+        this.bfMaxCount = r.bfMaxCount;
+        this.zoneThreshold = r.zoneThreshold;
 
-		this.expWeight = r.expWeight;
+        this.expWeight = r.expWeight;
 
-		this.F_STAR = new BloomFilter<Integer>(r.F_STAR);
-		this.Ft = new BloomFilter<Integer>(r.Ft);
-		this.lastDegradation = r.lastDegradation;
-		this.identityCache = new HashMap<DTNHost, List<Integer>>(r.identityCache);
-	}
+        this.F_STAR = new BloomFilter<Integer>(r.F_STAR);
+        this.Ft = new BloomFilter<Integer>(r.Ft);
+        this.lastDegradation = r.lastDegradation;
+        this.identityCache = new HashMap<DTNHost, List<Integer>>(r.identityCache);
+    }
 
-	@Override
+    @Override
     public void init(DTNHost host, List<MessageListener> messageListeners){
         super.init(host, messageListeners);
         Integer thisHost = getHost().getAddress();
@@ -139,51 +139,48 @@ public class BFGMPRouter extends ActiveRouter {
         if (this.F_STAR == null) throw new AssertionError();
     }
 
-	@Override
-	public void changedConnection(Connection con) {
-		super.changedConnection(con);
+    @Override
+    public void changedConnection(Connection con) {
+        super.changedConnection(con);
 
-		if (con.isUp()) { // new connection
+        /* initiator performs all the actions on behalf of the
+         * other node too (so that the meeting probs are updated
+         * for both before exchanging them) */
+        DTNHost otherHost = con.getOtherNode(getHost());
+        MessageRouter mRouter = otherHost.getRouter();
+        assert mRouter instanceof BFGMPRouter : "BFGMP only works  with other routers of same type";
+        BFGMPRouter otherRouter = (BFGMPRouter)mRouter;
 
-			if (con.isInitiator(getHost())) {
-				/* initiator performs all the actions on behalf of the
-				 * other node too (so that the meeting probs are updated
-				 * for both before exchanging them) */
-				DTNHost otherHost = con.getOtherNode(getHost());
-				MessageRouter mRouter = otherHost.getRouter();
+        if (con.isUp()) { // new connection
 
-				assert mRouter instanceof BFGMPRouter : "BFGMP only works  with other routers of same type";
-				BFGMPRouter otherRouter = (BFGMPRouter)mRouter;
+            if (con.isInitiator(getHost())) {
+                /* exchange ACKed message data */
+                this.ackedMessageIds.addAll(otherRouter.ackedMessageIds);
+                otherRouter.ackedMessageIds.addAll(this.ackedMessageIds);
+                deleteAckedMessages();
+                otherRouter.deleteAckedMessages();                
+            }
+        }
+        else {
+            /* connection went down, update Bloom filters */
+            //Bloom filter exchange
+            //Create a copy of each node's filter
+            BloomFilter<Integer> Fjt = new BloomFilter<Integer>(otherRouter.Ft);
+            BloomFilter<Integer> Fit = new BloomFilter<Integer>(this.Ft);
+            //Degrade the information in that filters
+            Fjt.deterministicDegradation();
+            Fit.deterministicDegradation();
 
-				/* exchange ACKed message data */
-				this.ackedMessageIds.addAll(otherRouter.ackedMessageIds);
-				otherRouter.ackedMessageIds.addAll(this.ackedMessageIds);
-				deleteAckedMessages();
-				otherRouter.deleteAckedMessages();
+            try {
+                //Incorporate the information into each other's filters
+                this.Ft.join(Fjt);
+                otherRouter.Ft.join(Fit);
+            } catch (InvalidObjectException e) {
+                System.out.println(e.getMessage());
+            }
 
-
-                //Bloom filter exchange
-                //Create a copy of each node's filter
-                BloomFilter<Integer> Fjt = new BloomFilter<Integer>(otherRouter.Ft);
-                BloomFilter<Integer> Fit = new BloomFilter<Integer>(this.Ft);
-                //Degrade the information in that filters
-                Fjt.deterministicDegradation();
-                Fit.deterministicDegradation();
-
-                try {
-                    //Incorporate the information into each other's filters
-                    this.Ft.join(Fjt);
-                    otherRouter.Ft.join(Fit);
-                } catch (InvalidObjectException e) {
-                    System.out.println(e.getMessage());
-                }
-			}
-		}
-		//else {
-			/* connection went down, update transferred bytes average */
-
-		//}
-	}
+        }
+    }
 
     /**
      * Whenever this function is called, checks the current time and compares if at least {degradationInterval} seconds
@@ -204,99 +201,99 @@ public class BFGMPRouter extends ActiveRouter {
     }
 
 
-	/**
-	 * Deletes the messages from the message buffer that are known to be ACKed
-	 */
-	private void deleteAckedMessages() {
-		for (String id : this.ackedMessageIds) {
-			if (this.hasMessage(id) && !isSending(id)) {
-				this.deleteMessage(id, false);
-			}
-		}
-	}
+    /**
+     * Deletes the messages from the message buffer that are known to be ACKed
+     */
+    private void deleteAckedMessages() {
+        for (String id : this.ackedMessageIds) {
+            if (this.hasMessage(id) && !isSending(id)) {
+                this.deleteMessage(id, false);
+            }
+        }
+    }
 
-	@Override
-	public Message messageTransferred(String id, DTNHost from) {
-		Message m = super.messageTransferred(id, from);
-		/* was this node the final recipient of the message? */
-		if (isDeliveredMessage(m)) {
-			this.ackedMessageIds.add(id);
-		}
-		return m;
-	}
+    @Override
+    public Message messageTransferred(String id, DTNHost from) {
+        Message m = super.messageTransferred(id, from);
+        /* was this node the final recipient of the message? */
+        if (isDeliveredMessage(m)) {
+            this.ackedMessageIds.add(id);
+        }
+        return m;
+    }
 
-	/**
-	 * Method is called just before a transfer is finalized
-	 * at {@link ActiveRouter#update()}. MaxProp makes book keeping of the
-	 * delivered messages so their IDs are stored.
-	 * @param con The connection whose transfer was finalized
-	 */
-	@Override
-	protected void transferDone(Connection con) {
-		Message m = con.getMessage();
-		String id = m.getId();
-		DTNHost recipient = con.getOtherNode(getHost());
-		Set<String> sentMsgIds = this.sentMessages.get(recipient);
+    /**
+     * Method is called just before a transfer is finalized
+     * at {@link ActiveRouter#update()}. MaxProp makes book keeping of the
+     * delivered messages so their IDs are stored.
+     * @param con The connection whose transfer was finalized
+     */
+    @Override
+    protected void transferDone(Connection con) {
+        Message m = con.getMessage();
+        String id = m.getId();
+        DTNHost recipient = con.getOtherNode(getHost());
+        Set<String> sentMsgIds = this.sentMessages.get(recipient);
 
-		/* was the message delivered to the final recipient? */
-		if (m.getTo() == recipient) {
-			this.ackedMessageIds.add(m.getId()); // yes, add to ACKed messages
-			this.deleteMessage(m.getId(), false); // delete from buffer
-		}
+        /* was the message delivered to the final recipient? */
+        if (m.getTo() == recipient) {
+            this.ackedMessageIds.add(m.getId()); // yes, add to ACKed messages
+            this.deleteMessage(m.getId(), false); // delete from buffer
+        }
 
-		/* update the map of where each message is already sent */
-		if (sentMsgIds == null) {
-			sentMsgIds = new HashSet<String>();
-			this.sentMessages.put(recipient, sentMsgIds);
-		}
-		sentMsgIds.add(id);
-	}
+        /* update the map of where each message is already sent */
+        if (sentMsgIds == null) {
+            sentMsgIds = new HashSet<String>();
+            this.sentMessages.put(recipient, sentMsgIds);
+        }
+        sentMsgIds.add(id);
+    }
 
 
 
-	/**
-	 * Returns the next message that should be dropped, according to MaxProp's
-	 * message ordering scheme (see MaxPropTupleComparator).
-	 * @param excludeMsgBeingSent If true, excludes message(s) that are
-	 * being sent from the next-to-be-dropped check (i.e., if next message to
-	 * drop is being sent, the following message is returned)
-	 * @return The oldest message or null if no message could be returned
-	 * (no messages in buffer or all messages in buffer are being sent and
-	 * exludeMsgBeingSent is true)
-	 */
-	@Override
-	protected Message getNextMessageToRemove(boolean excludeMsgBeingSent) {
-		Collection<Message> messages = this.getMessageCollection();
-		List<Message> validMessages = new ArrayList<Message>();
+    /**
+     * Returns the next message that should be dropped, according to MaxProp's
+     * message ordering scheme (see MaxPropTupleComparator).
+     * @param excludeMsgBeingSent If true, excludes message(s) that are
+     * being sent from the next-to-be-dropped check (i.e., if next message to
+     * drop is being sent, the following message is returned)
+     * @return The oldest message or null if no message could be returned
+     * (no messages in buffer or all messages in buffer are being sent and
+     * exludeMsgBeingSent is true)
+     */
+    @Override
+    protected Message getNextMessageToRemove(boolean excludeMsgBeingSent) {
+        Collection<Message> messages = this.getMessageCollection();
+        List<Message> validMessages = new ArrayList<Message>();
 
-		for (Message m : messages) {
-			if (excludeMsgBeingSent && isSending(m.getId())) {
-				continue; // skip the message(s) that router is sending
-			}
-			validMessages.add(m);
-		}
+        for (Message m : messages) {
+            if (excludeMsgBeingSent && isSending(m.getId())) {
+                continue; // skip the message(s) that router is sending
+            }
+            validMessages.add(m);
+        }
 
-		validMessages.sort(new BloomFilterMessageComparator());
-		return validMessages.get(validMessages.size()-1); // return last message
-	}
+        validMessages.sort(new BloomFilterMessageComparator());
+        return validMessages.get(validMessages.size()-1); // return last message
+    }
 
-	@Override
-	public void update() {
-		super.update();
+    @Override
+    public void update() {
+        super.update();
 
-		degradationTimer();
+        degradationTimer();
 
-		if (!canStartTransfer() ||isTransferring()) {
-			return; // nothing to transfer or is currently transferring
-		}
+        if (!canStartTransfer() ||isTransferring()) {
+            return; // nothing to transfer or is currently transferring
+        }
 
-		// try messages that could be delivered to final recipient
-		if (exchangeDeliverableMessages() != null) {
-			return;
-		}
+        // try messages that could be delivered to final recipient
+        if (exchangeDeliverableMessages() != null) {
+            return;
+        }
 
-		tryOtherMessages();
-	}
+        tryOtherMessages();
+    }
 
 
     /**
@@ -305,9 +302,9 @@ public class BFGMPRouter extends ActiveRouter {
      * @param to The destination node, only the identity of the node is used
      * @return The delivery probability at the origin node
      */
-	private double bloomFilterDeliveryProbability(DTNHost from, DTNHost to){
-	    MessageRouter mr = from.getRouter();
-	    assert mr instanceof BFGMPRouter : "Incorrect router module";
+    private double bloomFilterDeliveryProbability(DTNHost from, DTNHost to){
+        MessageRouter mr = from.getRouter();
+        assert mr instanceof BFGMPRouter : "Incorrect router module";
         BloomFilter<Integer> Fit = new BloomFilter<Integer>(((BFGMPRouter) mr).Ft);
 
         double Pr = 1.0;
@@ -327,91 +324,91 @@ public class BFGMPRouter extends ActiveRouter {
         return Pr /(Math.pow(bfMaxCount, bfHashFunctions));
     }
 
-	/**
-	 * Tries to send all other messages to all connected hosts ordered by
-	 * hop counts and their delivery probability
-	 * @return The return value of {@link #tryMessagesForConnected(List)}
-	 */
-	private Tuple<Message, Connection> tryOtherMessages() {
-		List<Tuple<Message, Connection>> messages =
-				new ArrayList<Tuple<Message, Connection>>();
+    /**
+     * Tries to send all other messages to all connected hosts ordered by
+     * hop counts and their delivery probability
+     * @return The return value of {@link #tryMessagesForConnected(List)}
+     */
+    private Tuple<Message, Connection> tryOtherMessages() {
+        List<Tuple<Message, Connection>> messages =
+        new ArrayList<Tuple<Message, Connection>>();
 
-		Collection<Message> msgCollection = getMessageCollection();
+        Collection<Message> msgCollection = getMessageCollection();
 
-		/* for all connected hosts that are not transferring at the moment,
-		 * collect all the messages that could be sent */
-		for (Connection con : getConnections()) {
-			DTNHost other = con.getOtherNode(getHost());
-			BFGMPRouter othRouter = (BFGMPRouter)other.getRouter();
-			Set<String> sentMsgIds = this.sentMessages.get(other);
+        /* for all connected hosts that are not transferring at the moment,
+         * collect all the messages that could be sent */
+        for (Connection con : getConnections()) {
+            DTNHost other = con.getOtherNode(getHost());
+            BFGMPRouter othRouter = (BFGMPRouter)other.getRouter();
+            Set<String> sentMsgIds = this.sentMessages.get(other);
 
-			if (othRouter.isTransferring()) {
-				continue; // skip hosts that are transferring
-			}
+            if (othRouter.isTransferring()) {
+                continue; // skip hosts that are transferring
+            }
 
-			for (Message m : msgCollection) {
-				/* skip messages that the other host has or that have
-				 * passed the other host */
-				if (othRouter.hasMessage(m.getId()) ||
-						m.getHops().contains(other)) {
-					continue;
-				}
-				/* skip message if this host has already sent it to the other
-				   host (regardless of if the other host still has it) */
-				if (sentMsgIds != null && sentMsgIds.contains(m.getId())) {
-					continue;
-				}
-				/* Calculate if the message is worth of transmitting */
-				Double rho = rho(getFilterSaturation());
+            for (Message m : msgCollection) {
+                /* skip messages that the other host has or that have
+                 * passed the other host */
+                if (othRouter.hasMessage(m.getId()) ||
+                    m.getHops().contains(other)) {
+                    continue;
+            }
+                /* skip message if this host has already sent it to the other
+                host (regardless of if the other host still has it) */
+                if (sentMsgIds != null && sentMsgIds.contains(m.getId())) {
+                    continue;
+                }
+                /* Calculate if the message is worth of transmitting */
+                Double rho = rho(getFilterSaturation());
                 Double Pr_neighbor = bloomFilterDeliveryProbability(other, m.getTo());
                 Double Pr_local = bloomFilterDeliveryProbability(getHost(), m.getTo());
-				if(Pr_neighbor + rho > Pr_local){
+                if(Pr_local < (Pr_neighbor + rho)){
                     messages.add(new Tuple<Message, Connection>(m, con));
                 }
 
-			}
-		}
+            }
+        }
 
-		if (messages.size() == 0) {
-			return null;
-		}
+        if (messages.size() == 0) {
+            return null;
+        }
 
-		// Collections.sort(messages, new BloomFilterQueueComparator());
-		messages.sort(new BloomFilterQueueComparator());
-		//printTupleList(messages);
+        // Collections.sort(messages, new BloomFilterQueueComparator());
+        messages.sort(new BloomFilterQueueComparator());
+        //printTupleList(messages);
 
-		return tryMessagesForConnected(messages);
-	}
-
-
-
-	@Override
-	public RoutingInfo getRoutingInfo() {
-		RoutingInfo top = super.getRoutingInfo();
-		RoutingInfo ri = new RoutingInfo("Saturation: " + getFilterSaturation());
-
-		top.addMoreInfo(ri);
-
-		return top;
-	}
-
-	@Override
-	public MessageRouter replicate(){
-		return new BFGMPRouter(this);
-	}
+        return tryMessagesForConnected(messages);
+    }
 
 
-	public void printTupleList(List<Tuple<Message, Connection>> list){
-	    if(list.size() == 0 )
-	        return;
+
+    @Override
+    public RoutingInfo getRoutingInfo() {
+        RoutingInfo top = super.getRoutingInfo();
+        RoutingInfo ri = new RoutingInfo("Saturation: " + getFilterSaturation());
+
+        top.addMoreInfo(ri);
+
+        return top;
+    }
+
+    @Override
+    public MessageRouter replicate(){
+        return new BFGMPRouter(this);
+    }
+
+
+    public void printTupleList(List<Tuple<Message, Connection>> list){
+        if(list.size() == 0 )
+            return;
 
         DecimalFormat dFormat = new DecimalFormat("0.000");
-	    System.out.println("----------------------Node " + getHost().toString() + "@" + SimClock.getTime() + "---------------------");
-	    System.out.println(String.format("%-8s%-8s%-8s%-8s%-8s%-8s", "MSG", "NHop", "Pri", "Prj", "Δ", "hops"));
-	    //System.out.println("MSG\tNHop\tPri\t\tPrj\t\tΔ\thops1\thops2");
-	    for( Tuple<Message, Connection> entry : list){
-	        Message m = entry.getKey();
-	        Connection c = entry.getValue();
+        System.out.println("----------------------Node " + getHost().toString() + "@" + SimClock.getTime() + "---------------------");
+        System.out.println(String.format("%-8s%-8s%-8s%-8s%-8s%-8s", "MSG", "NHop", "Pri", "Prj", "Δ", "hops"));
+        //System.out.println("MSG\tNHop\tPri\t\tPrj\t\tΔ\thops1\thops2");
+        for( Tuple<Message, Connection> entry : list){
+            Message m = entry.getKey();
+            Connection c = entry.getValue();
             StringBuilder sb = new StringBuilder();
 
             sb.append(String.format("%-8s%-8s", m.getId(), c.getOtherNode(getHost())));
@@ -434,16 +431,16 @@ public class BFGMPRouter extends ActiveRouter {
 
     private class BloomFilterMessageComparator implements Comparator<Message>{
 
-	    private DTNHost from1;
-	    private DTNHost from2;
+        private DTNHost from1;
+        private DTNHost from2;
 
-	    public BloomFilterMessageComparator(DTNHost from1, DTNHost from2){
-	        this.from1 = from1;
-	        this.from2 = from2;
+        public BloomFilterMessageComparator(DTNHost from1, DTNHost from2){
+            this.from1 = from1;
+            this.from2 = from2;
         }
 
         public BloomFilterMessageComparator(){
-	        this.from1 = this.from2 = getHost();
+            this.from1 = this.from2 = getHost();
         }
 
         /**
@@ -454,10 +451,10 @@ public class BFGMPRouter extends ActiveRouter {
          */
         @Override
         public int compare(Message m1, Message m2) {
-        	final double lambda = 0.4;
-	        double pri, prj;
-	        int hopCount1 = m1.getHopCount();
-	        int hopCount2 = m2.getHopCount();
+            final double lambda = 0.4;
+            double pri, prj;
+            int hopCount1 = m1.getHopCount();
+            int hopCount2 = m2.getHopCount();
 
             //If the messages have the same hop count, then compare by delivery probability
             pri = bloomFilterDeliveryProbability(from1, m1.getTo());
@@ -467,16 +464,16 @@ public class BFGMPRouter extends ActiveRouter {
             //double delta2 = delta(m2, from2);
 
             double beta1 = (lambda*pri) + (1-lambda)*(Math.exp(-hopCount1));
-			double beta2 = (lambda*prj) + (1-lambda)*(Math.exp(-hopCount2));
+            double beta2 = (lambda*prj) + (1-lambda)*(Math.exp(-hopCount2));
 
             if(beta2 > beta1){
                 return 1;
             }else if(beta2 == beta1){
                 //if(hopCount2 < hopCount1){
-				if(prj > pri) {
-					return 1;
-				}else if(hopCount2 < hopCount1){
-					return 1;
+                if(prj > pri) {
+                    return 1;
+                }else if(hopCount2 < hopCount1){
+                    return 1;
                 }else if(hopCount1 == hopCount2){
                     return compareByQueueMode(m1, m2);
                 }
@@ -500,28 +497,28 @@ public class BFGMPRouter extends ActiveRouter {
         }
     }
 
-	/**
-	 * Calculates the delta for the delivery probability for a particular message, between this node and a neighbor
-	 * @param m The message
-	 * @param neighbor The DTNHost object to calculate the delta
-	 * @return The delta, contained between [-1, 1]
-	 */
+    /**
+     * Calculates the delta for the delivery probability for a particular message, between this node and a neighbor
+     * @param m The message
+     * @param neighbor The DTNHost object to calculate the delta
+     * @return The delta, contained between [-1, 1]
+     */
     private double delta(Message m, DTNHost neighbor){
-		DTNHost to = m.getTo();
-		double pri = bloomFilterDeliveryProbability(getHost(), to);
-		double prj = bloomFilterDeliveryProbability(neighbor, to);
-		return (prj-pri);
-	}
+        DTNHost to = m.getTo();
+        double pri = bloomFilterDeliveryProbability(getHost(), to);
+        double prj = bloomFilterDeliveryProbability(neighbor, to);
+        return (prj-pri);
+    }
 
-	public Double getFilterSaturation(){
-    	Double sum = 0.0;
-    	for(int i=0; i<this.bfCounters; i++){
-    		sum += this.Ft.counterAt(i);
-		}
-		return sum / (1.0*bfMaxCount*bfCounters);
-	}
+    public Double getFilterSaturation(){
+        Double sum = 0.0;
+        for(int i=0; i<this.bfCounters; i++){
+            sum += this.Ft.counterAt(i);
+        }
+        return sum / (1.0*bfMaxCount*bfCounters);
+    }
 
-	private Double rho(Double saturation){
+    private Double rho(Double saturation){
         return Math.exp(-1.0 * expWeight * saturation);
     }
 
