@@ -3,7 +3,7 @@ Scenario.name = MANET-seed[%%MovementModel.rngSeed%%]-[%%Group.nrofHosts%%]n
 Scenario.simulateConnections = true
 Scenario.updateInterval = 0.1
 # 43200s == 12h
-Scenario.endTime = 21600
+Scenario.endTime = 2160
 
 # High speed, long range (m)
 highspeedInterface.type = SimpleBroadcastInterface
@@ -40,7 +40,7 @@ Events.nrof = 1
 Events1.class = MessageEventGenerator
 # (following settings are specific for the MessageEventGenerator class)
 # Creation interval in seconds (one new message every 25 to 35 seconds)
-Events1.interval = 25,35
+Events1.interval = 2,5
 # Message sizes (500kB - 1MB)
 Events1.size = 500k,1M
 # range of message source/destination addresses
@@ -56,7 +56,7 @@ BFGMPRouter.zoneThreshold = 0.5
 BFGMPRouter.BFCounters = 512
 BFGMPRouter.BFHashFunctions = 8
 BFGMPRouter.BFMaxCount = 32
-BFGMPRouter.PureMaxPROP = false
+BFGMPRouter.expWeight = 4
 
 
 ## Movement model settings
@@ -65,7 +65,7 @@ BFGMPRouter.PureMaxPROP = false
 MovementModel.rngSeed = [78802;   94176;   65221;   44180;   79009; 68831;   73906;   15598; 78051;   71182;   15475;   45907; 5768;    28749;   24113;   80454; 59004;   54008;   70; 8439;    22;  58405;   38517;   33282; 5481;    11778; 96617;   52770;   55182;   5327;     11131; 61959; 44450; 4762;    20098;   61667;   15405;   98682; 82509;   65139; 4029;    90521; 98820;   3136;    35402; 64524;   37578;   16966;  84181;   91016]
 
 # World's size for Movement Models without implicit size (width, height; meters)
-MovementModel.worldSize = 15000,15000
+MovementModel.worldSize = 1500,1500
 # How long time to move hosts in the world before real simulation
 MovementModel.warmup = 1000
 
@@ -76,9 +76,9 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = BFGMP200/
+Report.reportDir = BFGMP/
 # Report classes to load
-Report.report1 = MessageStatsReport
+Report.report1 = MetricsReport
 Report.report2 = MessageLocationReport
 Report.report3 = BloomFilterSnapshotReport
 Report.report4 = LocationSnapshotReport

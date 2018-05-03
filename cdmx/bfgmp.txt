@@ -60,10 +60,7 @@ BFGMPRouter.BFCounters = 512
 BFGMPRouter.BFHashFunctions = 8
 BFGMPRouter.BFMaxCount = 32
 BFGMPRouter.PureMaxPROP = false
-BFGMPRouter.weightAlpha = 0.5
-BFGMPRouter.weightBeta = 10
-BFGMPRouter.weightGamma = 0.3
-BFGMPRouter.weightDelta = 0.4
+BFGMPRouter.expWeight = 4
 
 
 ## Movement model settings

@@ -15,7 +15,7 @@ Scenario.nrofHostGroups = 1
 
 # Common settings for all groups
 Group.movementModel = RandomWaypoint
-Group.router = BFGRouter
+Group.router = BFGMPRouter
 Group.bufferSize = 50M
 Group.waitTime = 0, 120
 Group.nrofInterfaces = 1
@@ -78,9 +78,9 @@ Report.nrofReports = 1
 # length of the warm up period (simulated seconds)
 Report.warmup = 0
 # default directory of reports (can be overridden per Report with output setting)
-Report.reportDir = RESULTADOS/50M/MANET/BFG/
+Report.reportDir = RESULTADOS/
 # Report classes to load
-Report.report1 = MessageStatsReport
+Report.report1 = MetricsReport
 Report.report2 = MessageLocationReport
 Report.report3 = BloomFilterSnapshotReport
 Report.report4 = LocationSnapshotReport
