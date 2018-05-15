@@ -20,8 +20,9 @@ import java.util.Map;
  */
 public class MetricsReport extends Report implements MessageListener{
 
-    private HashMap<String, Double> distances_at_creation;
-    private HashMap<String, Double> distances_of_delivered;
+    private Map<String, Double> distances_at_creation;
+    private Map<String, Double> distances_of_delivered;
+    private Map<String, Double> speeds;
     private Map<String, Double> creationTimes;
     private List<Double> latencies;
     private List<Integer> hopCounts;
@@ -51,6 +52,7 @@ public class MetricsReport extends Report implements MessageListener{
         this.hopCounts = new ArrayList<Integer>();
         this.distances_at_creation = new HashMap<>();
         this.distances_of_delivered = new HashMap<>();
+        this.speeds = new HashMap<>();
 
         this.nrofDropped = 0;
         this.nrofRemoved = 0;
@@ -94,10 +96,11 @@ public class MetricsReport extends Report implements MessageListener{
 
         this.nrofRelayed++;
         if (finalTarget) {
-            this.latencies.add(getSimTime() -
-                    this.creationTimes.get(m.getId()) );
+            double messageTime = getSimTime() - this.creationTimes.get(m.getId());
+            this.latencies.add(messageTime);
             this.nrofDelivered++;
             this.hopCounts.add(m.getHops().size() - 1);
+            speeds.put(m.getId(), distances_at_creation.get(m.getId()) / messageTime);
             distances_of_delivered.put(m.getId(), distances_at_creation.get(m.getId()));
 
         }
@@ -167,6 +170,7 @@ public class MetricsReport extends Report implements MessageListener{
         sb.append("\nbuffertime_med: " + getMedian(this.msgBufferTime) );
         sb.append("\ndistance_avg: ").append(getAverage(distances_at_creation));
         sb.append("\nd_dist_avg: ").append(getAverage(distances_of_delivered));
+        sb.append("\nspeed_avg: ").append(getAverage(speeds));
         write(sb.toString());
         super.done();
 
@@ -202,13 +206,14 @@ public class MetricsReport extends Report implements MessageListener{
     private void writeDistanceDistribution(String filename){
         try {
             PrintWriter reportFile = new PrintWriter(new FileWriter(filename));
-            reportFile.println("id, delivered, distance");
+            reportFile.println("id, delivered, distance, speed");
             for (Map.Entry<String, Double> entry : this.distances_at_creation.entrySet()) {
                 boolean delivered = this.distances_of_delivered.containsKey(entry.getKey());
                 StringBuilder sb = new StringBuilder();
                 sb.append(entry.getKey()).append(", ");
                 sb.append(delivered).append(", ");
-                sb.append(entry.getValue());
+                sb.append(entry.getValue()).append(", ");
+                sb.append(speeds.get(entry.getKey()));
                 reportFile.println(sb.toString());
             }
             reportFile.close();
