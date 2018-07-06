@@ -362,7 +362,7 @@ public class BFGMPRouter extends ActiveRouter {
                 Double rho = rho(getFilterSaturation());
                 Double Pr_neighbor = bloomFilterDeliveryProbability(other, m.getTo());
                 Double Pr_local = bloomFilterDeliveryProbability(getHost(), m.getTo());
-                if(Pr_local < (Pr_neighbor + rho)){
+                if(Pr_local < (Pr_neighbor + rho)/2.0){
                     messages.add(new Tuple<Message, Connection>(m, con));
                 }
 
