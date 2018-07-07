@@ -362,7 +362,7 @@ public class BFGMPRouter extends ActiveRouter {
                 Double rho = rho(getFilterSaturation());
                 Double Pr_neighbor = bloomFilterDeliveryProbability(other, m.getTo());
                 Double Pr_local = bloomFilterDeliveryProbability(getHost(), m.getTo());
-                if(Pr_local < (Pr_neighbor + rho)/2.0){
+                if(Pr_local < (Pr_neighbor + rho)){
                     messages.add(new Tuple<Message, Connection>(m, con));
                 }
 
@@ -428,7 +428,14 @@ public class BFGMPRouter extends ActiveRouter {
         System.out.println("=========================================================================");
     }
 
-
+    /**
+     * Compares two different messages, potentially in different hosts
+     * The priority in descending order is the following:
+     *   Given two messages msgA and msgB, with destinations d1 and d2 respectively, and hosts i, j
+     *   1. The highest beta(msg); beta(msgX) = lambda*Pr_i^d + e^{-msgX.hops}
+     *   2. The highest delivery probability Pr_{i,j}^{d}
+     *   3. The highest number of hops
+     */
     private class BloomFilterMessageComparator implements Comparator<Message>{
 
         private DTNHost from1;
@@ -451,7 +458,7 @@ public class BFGMPRouter extends ActiveRouter {
          */
         @Override
         public int compare(Message m1, Message m2) {
-            final double lambda = 0.4;
+            final double lambda = 0.6;
             double pri, prj;
             int hopCount1 = m1.getHopCount();
             int hopCount2 = m2.getHopCount();
@@ -460,16 +467,12 @@ public class BFGMPRouter extends ActiveRouter {
             pri = bloomFilterDeliveryProbability(from1, m1.getTo());
             prj = bloomFilterDeliveryProbability(from2, m2.getTo());
 
-            //double delta1 = delta(m1, from1);
-            //double delta2 = delta(m2, from2);
-
             double beta1 = (lambda*pri) + (1-lambda)*(Math.exp(-hopCount1));
             double beta2 = (lambda*prj) + (1-lambda)*(Math.exp(-hopCount2));
 
             if(beta2 > beta1){
                 return 1;
             }else if(beta2 == beta1){
-                //if(hopCount2 < hopCount1){
                 if(prj > pri) {
                     return 1;
                 }else if(hopCount2 < hopCount1){
